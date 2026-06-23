@@ -1,0 +1,118 @@
+// Prisma schema for Albayyan School API (PostgreSQL)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Session {
+  id             String        @id @default(uuid())
+  name           String        @unique
+  startDate      DateTime
+  endDate        DateTime
+  isActive       Boolean       @default(false)
+  terms          Term[]
+  feeStructures  FeeStructure[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+model Term {
+  id             String        @id @default(uuid())
+  sessionId      String
+  name           String
+  startDate      DateTime
+  endDate        DateTime
+  isActive       Boolean       @default(false)
+  session        Session       @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  feeStructures  FeeStructure[]
+  invoices       Invoice[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@unique([sessionId, name])
+}
+
+model Students {
+  id               String        @id @default(uuid())
+  admissionNumber  String        @unique
+  firstName        String
+  lastName         String
+  level            String        @default("Primary")
+  email            String?
+  phone            String?
+  busUser          Boolean       @default(false)
+  joinedDate       DateTime      @default(now())
+  invoices         Invoice[]
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+}
+
+model FeeStructure {
+  id                         String        @id @default(uuid())
+  sessionId                  String
+  termId                     String
+  classLevel                 String
+  newStudentBaseTuition      Float
+  newStudentBoardingFee      Float?
+  newStudentSchoolBusFee     Float?
+  newStudentTotal            Float
+  returningStudentBaseTuition Float
+  returningStudentBoardingFee Float?
+  returningStudentSchoolBusFee Float?
+  returningStudentTotal      Float
+  session                    Session      @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  term                       Term         @relation(fields: [termId], references: [id], onDelete: Cascade)
+  invoices                   Invoice[]
+  createdAt                  DateTime     @default(now())
+  updatedAt                  DateTime     @updatedAt
+
+  @@unique([sessionId, termId, classLevel])
+}
+
+model Invoice {
+  id                String        @id @default(uuid())
+  studentId         String
+  feeStructureId    String
+  termId            String
+  totalAmount       Float
+  amountPaid        Float         @default(0.0)
+  balanceDue        Float
+  dueDate           DateTime
+  status            String        @default("Unpaid")
+  student           Students      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  feeStructure      FeeStructure  @relation(fields: [feeStructureId], references: [id], onDelete: Cascade)
+  term              Term          @relation(fields: [termId], references: [id], onDelete: Cascade)
+  payments          Payment[]
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+}
+
+model Payment {
+  id                   String   @id @default(uuid())
+  invoiceId            String
+  amountPaid           Float
+  paymentMethod        String
+  bankName             String?
+  receiptNumber        String   @unique
+  paidByName           String
+  transactionReference String   @unique
+  paymentDate          DateTime @default(now())
+  recordedBy           String
+  invoice              Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+model Debtors {
+  id        String   @id @default(uuid())
+  studentId String
+  amount    Float
+  dueDate   DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
