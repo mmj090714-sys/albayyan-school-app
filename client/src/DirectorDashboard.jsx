@@ -3,6 +3,8 @@ import axios from 'axios';
 import SchoolHeader from './SchoolHeader';
 import './DirectorDashboard.css';
 
+const API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api`;
+
 const DirectorDashboard = ({ onLogout }) => {
   const [students, setStudents] = useState([]);
   const [invoices, setInvoices] = useState([]);
@@ -29,11 +31,11 @@ const DirectorDashboard = ({ onLogout }) => {
       const headers = { Authorization: `Bearer ${directorToken}` };
 
       const [summaryRes, notificationsRes, studentsRes, invoicesRes, paymentsRes] = await Promise.all([
-        axios.get('http://localhost:5000/api/director/summary', { headers }),
-        axios.get('http://localhost:5000/api/director/notifications', { headers }),
-        axios.get('http://localhost:5000/api/director/students', { headers }),
-        axios.get('http://localhost:5000/api/director/invoices', { headers }),
-        axios.get('http://localhost:5000/api/director/payments', { headers })
+        axios.get(`${API_URL}/director/summary`, { headers }),
+        axios.get(`${API_URL}/director/notifications`, { headers }),
+        axios.get(`${API_URL}/director/students`, { headers }),
+        axios.get(`${API_URL}/director/invoices`, { headers }),
+        axios.get(`${API_URL}/director/payments`, { headers })
       ]);
 
       setSummary(summaryRes.data);
@@ -53,7 +55,7 @@ const DirectorDashboard = ({ onLogout }) => {
   const loadNotifications = async () => {
     try {
       const headers = { Authorization: `Bearer ${directorToken}` };
-      const res = await axios.get('http://localhost:5000/api/director/notifications', { headers });
+      const res = await axios.get(`${API_URL}/director/notifications`, { headers });
       setNotifications(res.data);
     } catch (err) {
       console.error('Error loading notifications:', err);

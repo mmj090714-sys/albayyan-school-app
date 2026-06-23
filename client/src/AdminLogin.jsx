@@ -3,6 +3,8 @@ import axios from 'axios';
 import './AuthPages.css';
 import SchoolHeader from './SchoolHeader';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 const AdminLogin = ({ onLoginSuccess, onBackHome }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -15,7 +17,7 @@ const AdminLogin = ({ onLoginSuccess, onBackHome }) => {
     setLoading(true);
 
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/admin/login', {
+      const response = await axios.post(`${API_URL}/api/auth/admin/login`, {
         username,
         password
       });
