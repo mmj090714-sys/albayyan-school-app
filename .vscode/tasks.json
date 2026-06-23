@@ -1,0 +1,96 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Dev Server - Both (Frontend + Backend)",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "dev"],
+      "isBackground": true,
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": false
+      }
+    },
+    {
+      "label": "Dev Server - Backend Only",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "dev", "--workspace=server"],
+      "isBackground": true,
+      "group": {
+        "kind": "build"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Dev Server - Frontend Only",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "dev", "--workspace=client"],
+      "isBackground": true,
+      "group": {
+        "kind": "build"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Database - Push Schema",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "db:push", "--workspace=server"],
+      "group": {
+        "kind": "test"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Database - Prisma Studio",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "prisma:studio", "--workspace=server"],
+      "isBackground": true,
+      "group": {
+        "kind": "test"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Build - Production",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "build"],
+      "group": {
+        "kind": "build"
+      },
+      "problemMatcher": []
+    }
+  ]
+}

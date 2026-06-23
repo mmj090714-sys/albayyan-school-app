@@ -1,0 +1,510 @@
+:root {
+  --primary: #2563eb;
+  --primary-dark: #1e40af;
+  --success: #10b981;
+  --accent: #06b6d4;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --dark: #1f2937;
+  --light: #f9fafb;
+  --gray: #6b7280;
+  --border: #e5e7eb;
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.parent-dashboard-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%);
+  padding: 0;
+}
+
+.parent-header {
+  background: linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%);
+  color: white;
+  padding: 3rem 2rem 2rem;
+  box-shadow: var(--shadow-lg);
+  text-align: center;
+}
+
+.parent-header-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.parent-header-content i {
+  font-size: 3rem;
+  opacity: 0.9;
+}
+
+.parent-header h1 {
+  font-size: 2.5rem;
+  margin: 0;
+  font-weight: 700;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+}
+
+.parent-header p {
+  font-size: 1.2rem;
+  opacity: 0.95;
+  margin: 0;
+  font-weight: 500;
+}
+
+.parent-search-section {
+  display: flex;
+  justify-content: center;
+  padding: 2.5rem;
+  padding-top: 2rem;
+}
+
+.parent-search-form {
+  display: flex;
+  gap: 1rem;
+  background: white;
+  padding: 1.25rem;
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  max-width: 600px;
+  width: 100%;
+  align-items: center;
+}
+
+.parent-search-wrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background-color: #f3f4f6;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.parent-search-wrapper i {
+  color: var(--gray);
+  font-size: 1.1rem;
+}
+
+.parent-search-wrapper:focus-within {
+  background-color: white;
+  border-color: var(--primary);
+}
+
+.parent-search-input {
+  flex: 1;
+  background: none;
+  border: none;
+  font-size: 1rem;
+  outline: none;
+  color: var(--dark);
+}
+
+.parent-search-input::placeholder {
+  color: var(--gray);
+}
+
+.parent-search-button {
+  padding: 0.75rem 2rem;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: var(--shadow-lg);
+}
+
+.parent-search-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 15px 25px rgba(0, 0, 0, 0.2);
+}
+
+.parent-search-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.parent-search-button i {
+  font-size: 1.1rem;
+}
+
+.parent-error-message {
+  background-color: #fee;
+  color: var(--danger);
+  padding: 1.25rem 1.5rem;
+  border-radius: 10px;
+  margin: 0 2rem 2rem;
+  border-left: 4px solid var(--danger);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-weight: 500;
+  box-shadow: var(--shadow-lg);
+}
+
+.parent-error-message i {
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+
+.parent-student-info {
+  background: white;
+  margin: 0 2rem 2rem;
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  padding: 2rem;
+  max-width: 1000px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.parent-info-header {
+  border-bottom: 3px solid var(--primary);
+  padding-bottom: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.parent-info-header-content {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.parent-info-header-content i {
+  font-size: 3rem;
+  color: var(--primary);
+}
+
+.parent-info-header-content div {
+  flex: 1;
+}
+
+.parent-info-header h2 {
+  color: var(--dark);
+  font-size: 1.8rem;
+  margin: 0 0 0.5rem;
+  font-weight: 700;
+}
+
+.parent-info-header p {
+  color: var(--gray);
+  margin: 0;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.parent-info-header p i {
+  font-size: 1rem;
+  color: var(--primary);
+}
+
+.parent-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--dark);
+  font-size: 1.4rem;
+  margin-bottom: 1.5rem;
+  font-weight: 700;
+}
+
+.parent-section-title i {
+  color: var(--primary);
+  font-size: 1.5rem;
+}
+
+.parent-section-title h3 {
+  margin: 0;
+}
+
+.parent-no-fees {
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  color: #047857;
+  padding: 2rem;
+  border-radius: 10px;
+  border: 2px solid #6ee7b7;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.parent-no-fees i {
+  font-size: 2.5rem;
+}
+
+.parent-invoices-list {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.parent-invoice-card {
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  padding: 1.5rem;
+  background: #fafafa;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.parent-invoice-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(180deg, var(--primary), var(--accent));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.parent-invoice-card:hover {
+  transform: translateX(4px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--primary);
+}
+
+.parent-invoice-card:hover::before {
+  opacity: 1;
+}
+
+.parent-invoice-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.parent-invoice-term {
+  font-weight: 600;
+  color: var(--primary);
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.parent-invoice-term i {
+  font-size: 1.2rem;
+}
+
+.parent-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 1rem;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.status-unpaid {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.status-partial {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.status-paid {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.parent-invoice-details {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--gray);
+  font-size: 0.95rem;
+}
+
+.detail-item i {
+  color: var(--primary);
+  font-size: 1rem;
+}
+
+.parent-invoice-amount {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.amount-box {
+  background: white;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  transition: all 0.3s ease;
+}
+
+.amount-box.highlight {
+  border: 2px solid var(--danger);
+  background: rgba(239, 68, 68, 0.05);
+}
+
+.amount-box:hover {
+  border-color: var(--primary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.amount-label {
+  display: block;
+  color: var(--gray);
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.amount-value {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--dark);
+  margin: 0;
+}
+
+.amount-value.paid {
+  color: var(--success);
+}
+
+.amount-value.balance {
+  color: var(--danger);
+}
+
+.parent-pay-button {
+  width: 100%;
+  padding: 1rem;
+  background: linear-gradient(135deg, var(--success), var(--accent));
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  box-shadow: var(--shadow-lg);
+}
+
+.parent-pay-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 15px 25px rgba(16, 185, 129, 0.3);
+}
+
+.parent-pay-button i {
+  font-size: 1.1rem;
+}
+
+@media (max-width: 768px) {
+  .parent-header h1 {
+    font-size: 1.8rem;
+  }
+
+  .parent-header p {
+    font-size: 1rem;
+  }
+
+  .parent-search-section {
+    padding: 1.5rem;
+  }
+
+  .parent-search-form {
+    flex-direction: column;
+  }
+
+  .parent-student-info {
+    margin: 0 1rem 1.5rem;
+    padding: 1.5rem;
+  }
+
+  .parent-info-header-content {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .parent-info-header h2 {
+    font-size: 1.4rem;
+  }
+
+  .parent-invoice-amount {
+    grid-template-columns: 1fr;
+  }
+
+  .parent-error-message {
+    margin: 0 1rem 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .parent-header {
+    padding: 2rem 1rem 1.5rem;
+  }
+
+  .parent-header-content i {
+    font-size: 2.5rem;
+  }
+
+  .parent-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .parent-search-section {
+    padding: 1rem;
+  }
+
+  .parent-search-form {
+    padding: 1rem;
+  }
+
+  .parent-search-wrapper {
+    padding: 0.6rem 0.75rem;
+  }
+
+  .parent-search-input {
+    font-size: 0.9rem;
+  }
+
+  .parent-search-button {
+    padding: 0.6rem 1.5rem;
+    font-size: 0.9rem;
+  }
+
+  .parent-info-header-content i {
+    font-size: 2.5rem;
+  }
+
+  .parent-info-header h2 {
+    font-size: 1.2rem;
+  }
+}
