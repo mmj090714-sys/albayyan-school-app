@@ -30,24 +30,24 @@ CREATE INDEX IF NOT EXISTS idx_payments_payment_date ON payments(payment_date);
 ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies for payments (permissive - allow access)
-DROP POLICY IF EXISTS "Allow read payments" ON payments;
-CREATE POLICY "Allow read payments"
-  ON payments FOR SELECT
+DROP POLICY IF EXISTS "payments_select_policy" ON payments;
+CREATE POLICY "payments_select_policy" ON payments
+  FOR SELECT
   USING (true);
 
-DROP POLICY IF EXISTS "Allow insert payments" ON payments;
-CREATE POLICY "Allow insert payments"
-  ON payments FOR INSERT
+DROP POLICY IF EXISTS "payments_insert_policy" ON payments;
+CREATE POLICY "payments_insert_policy" ON payments
+  FOR INSERT
   WITH CHECK (true);
 
-DROP POLICY IF EXISTS "Allow update payments" ON payments;
-CREATE POLICY "Allow update payments"
-  ON payments FOR UPDATE
+DROP POLICY IF EXISTS "payments_update_policy" ON payments;
+CREATE POLICY "payments_update_policy" ON payments
+  FOR UPDATE
   USING (true);
 
-DROP POLICY IF EXISTS "Allow delete payments" ON payments;
-CREATE POLICY "Allow delete payments"
-  ON payments FOR DELETE
+DROP POLICY IF EXISTS "payments_delete_policy" ON payments;
+CREATE POLICY "payments_delete_policy" ON payments
+  FOR DELETE
   USING (true);
 
 -- ========================================
@@ -75,24 +75,24 @@ CREATE INDEX IF NOT EXISTS idx_users_is_active ON users(is_active);
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies for users (permissive)
-DROP POLICY IF EXISTS "Allow read users" ON users;
-CREATE POLICY "Allow read users"
-  ON users FOR SELECT
+DROP POLICY IF EXISTS "users_select_policy" ON users;
+CREATE POLICY "users_select_policy" ON users
+  FOR SELECT
   USING (true);
 
-DROP POLICY IF EXISTS "Allow insert users" ON users;
-CREATE POLICY "Allow insert users"
-  ON users FOR INSERT
+DROP POLICY IF EXISTS "users_insert_policy" ON users;
+CREATE POLICY "users_insert_policy" ON users
+  FOR INSERT
   WITH CHECK (true);
 
-DROP POLICY IF EXISTS "Allow update users" ON users;
-CREATE POLICY "Allow update users"
-  ON users FOR UPDATE
+DROP POLICY IF EXISTS "users_update_policy" ON users;
+CREATE POLICY "users_update_policy" ON users
+  FOR UPDATE
   USING (true);
 
-DROP POLICY IF EXISTS "Allow delete users" ON users;
-CREATE POLICY "Allow delete users"
-  ON users FOR DELETE
+DROP POLICY IF EXISTS "users_delete_policy" ON users;
+CREATE POLICY "users_delete_policy" ON users
+  FOR DELETE
   USING (true);
 
 -- ========================================
@@ -120,25 +120,16 @@ CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at);
 -- Enable RLS for audit_logs
 ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 
--- RLS Policies for audit_logs (permissive - read only for security audit)
-DROP POLICY IF EXISTS "Allow read audit logs" ON audit_logs;
-CREATE POLICY "Allow read audit logs"
-  ON audit_logs FOR SELECT
+-- RLS Policies for audit_logs (permissive - read and write)
+DROP POLICY IF EXISTS "audit_logs_select_policy" ON audit_logs;
+CREATE POLICY "audit_logs_select_policy" ON audit_logs
+  FOR SELECT
   USING (true);
 
-DROP POLICY IF EXISTS "Allow insert audit logs" ON audit_logs;
-CREATE POLICY "Allow insert audit logs"
-  ON audit_logs FOR INSERT
+DROP POLICY IF EXISTS "audit_logs_insert_policy" ON audit_logs;
+CREATE POLICY "audit_logs_insert_policy" ON audit_logs
+  FOR INSERT
   WITH CHECK (true);
-
--- Update trigger for audit_logs (on update_at field)
-CREATE OR REPLACE FUNCTION update_audit_logs_timestamp()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.created_at = CURRENT_TIMESTAMP;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
 
 -- ========================================
 -- SUMMARY
