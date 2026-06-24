@@ -159,13 +159,13 @@ const DirectorDashboard = ({ onLogout }) => {
                 </tr>
               </thead>
               <tbody>
-                {notifications.length > 0 ? (
-                  notifications.map((payment, idx) => (
+                {payments.length > 0 ? (
+                  payments.map((payment, idx) => (
                     <tr key={idx}>
                       <td>{new Date(payment.createdAt).toLocaleDateString()} {new Date(payment.createdAt).toLocaleTimeString()}</td>
-                      <td>{payment.invoice.student.firstName} {payment.invoice.student.lastName}</td>
-                      <td style={{ fontWeight: 'bold', color: '#10b981' }}>₦{payment.amountPaid.toLocaleString()}</td>
-                      <td>{payment.paymentMethod}</td>
+                      <td>{payment.student?.firstName} {payment.student?.lastName}</td>
+                      <td style={{ fontWeight: 'bold', color: '#10b981' }}>₦{payment.amount.toLocaleString()}</td>
+                      <td>Supabase Transfer</td>
                     </tr>
                   ))
                 ) : (
@@ -323,7 +323,6 @@ const DirectorDashboard = ({ onLogout }) => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <p>Recent payments recorded in the system (Last 7 days)</p>
               <button
-                onClick={loadNotifications}
                 style={{
                   padding: '10px 15px',
                   backgroundColor: '#3498db',
@@ -341,8 +340,8 @@ const DirectorDashboard = ({ onLogout }) => {
               flexDirection: 'column',
               gap: '15px'
             }}>
-              {notifications.length > 0 ? (
-                notifications.map((payment, idx) => (
+              {payments.length > 0 ? (
+                payments.map((payment, idx) => (
                   <div key={idx} style={{
                     backgroundColor: 'white',
                     padding: '20px',
@@ -353,10 +352,10 @@ const DirectorDashboard = ({ onLogout }) => {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
                       <div>
                         <p style={{ margin: '0 0 10px 0', fontSize: '16px', fontWeight: 'bold' }}>
-                          ✅ Payment Received: {payment.invoice.student.firstName} {payment.invoice.student.lastName}
+                          ✅ Invoice: {payment.student?.firstName} {payment.student?.lastName}
                         </p>
                         <p style={{ margin: '0 0 5px 0', color: '#7f8c8d' }}>
-                          <strong>Amount:</strong> ₦{payment.amountPaid.toLocaleString()}
+                          <strong>Amount:</strong> ₦{payment.amount.toLocaleString()}
                         </p>
                         <p style={{ margin: '0 0 5px 0', color: '#7f8c8d' }}>
                           <strong>Term:</strong> {payment.invoice.term.name}
