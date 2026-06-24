@@ -698,20 +698,34 @@ const AdminDashboard = ({ onLogout }) => {
                     alert('No invoices to export');
                     return;
                   }
-                  generateAnalyticsReportPDF({
-                    totalInvoices: stats.totalInvoices,
-                    totalCollected: stats.totalCollected,
-                    outstandingBalance: stats.outstandingBalance,
-                    collectionRate: Math.round((stats.totalCollected / (stats.totalCollected + stats.outstandingBalance)) * 100),
-                    bankDistribution: payments.reduce((acc, pay) => {
+                  const totalAmount = stats.totalCollected + stats.outstandingBalance;
+                  const safeCollectionRate = totalAmount > 0 ? Math.round((stats.totalCollected / totalAmount) * 100) : 0;
+                  
+                  // Build bank distribution safely
+                  const bankDist = payments.reduce((acc, pay) => {
+                    if (pay && pay.bankName && pay.amountPaid) {
                       const bank = acc.find(b => b.name === pay.bankName);
                       if (bank) {
                         bank.amount += pay.amountPaid;
                       } else {
-                        acc.push({ name: pay.bankName || 'Unknown', amount: pay.amountPaid });
+                        acc.push({ name: pay.bankName, amount: pay.amountPaid });
                       }
-                      return acc;
-                    }, []).map(b => ({ ...b, percentage: (b.amount / stats.totalCollected * 100) }))
+                    }
+                    return acc;
+                  }, []);
+                  
+                  // Calculate percentages safely
+                  const bankDistWithPercentage = bankDist.map(b => ({ 
+                    ...b, 
+                    percentage: stats.totalCollected > 0 ? (b.amount / stats.totalCollected * 100) : 0 
+                  }));
+                  
+                  generateAnalyticsReportPDF({
+                    totalInvoices: stats.totalInvoices || invoices.length,
+                    totalCollected: stats.totalCollected,
+                    outstandingBalance: stats.outstandingBalance,
+                    collectionRate: safeCollectionRate,
+                    bankDistribution: bankDistWithPercentage
                   }, 'Current Period');
                 }}
                 style={{ padding: '10px 15px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}

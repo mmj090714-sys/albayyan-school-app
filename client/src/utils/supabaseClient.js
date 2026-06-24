@@ -627,7 +627,7 @@ export const fetchPayments = async (studentId = null) => {
   try {
     let query = supabase
       .from('payments')
-      .select('*, students(first_name, last_name), invoices(term, amount)')
+      .select('*, invoice:invoice_id(amount, status, term(*), student:student_id(first_name, last_name, admission_number))')
     
     if (studentId) {
       query = query.eq('student_id', studentId)
@@ -636,7 +636,32 @@ export const fetchPayments = async (studentId = null) => {
     const { data, error } = await query.order('created_at', { ascending: false })
     
     if (error) throw error
-    return data || []
+    
+    // Transform snake_case to camelCase for consistency
+    return (data || []).map(payment => ({
+      id: payment.id,
+      invoiceId: payment.invoice_id,
+      studentId: payment.student_id,
+      amountPaid: payment.amount_paid,
+      paymentMethod: payment.payment_method,
+      bankName: payment.bank_name,
+      receiptNumber: payment.receipt_number,
+      paidByName: payment.paid_by_name,
+      paymentDate: payment.payment_date,
+      transactionReference: payment.transaction_reference,
+      recordedBy: payment.recorded_by,
+      createdAt: payment.created_at,
+      // Include related data if available
+      invoice: payment.invoice ? {
+        id: payment.invoice.id,
+        amount: payment.invoice.amount,
+        status: payment.invoice.status,
+        student: {
+          firstName: payment.invoice.student?.first_name || '',
+          lastName: payment.invoice.student?.last_name || ''
+        }
+      } : null
+    }))
   } catch (error) {
     console.error('Error fetching payments:', error)
     throw error
