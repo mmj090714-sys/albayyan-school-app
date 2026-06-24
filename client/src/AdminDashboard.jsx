@@ -3,7 +3,26 @@ import './AdminDashboard.css';
 import ReceiptModal from './ReceiptModal';
 import SchoolHeader from './SchoolHeader';
 import { exportStudentsToExcel, parseStudentsFromExcel, downloadExcelTemplate } from './utils/excelUtils';
-import { fetchStudents, createStudent, bulkImportStudents, logout } from './utils/supabaseClient';
+import { 
+  fetchStudents, 
+  createStudent, 
+  bulkImportStudents, 
+  logout,
+  fetchSessions,
+  createSession,
+  updateSession,
+  deleteSession,
+  fetchTerms,
+  createTerm,
+  updateTerm,
+  deleteTerm,
+  fetchFeeStructures,
+  createFeeStructure,
+  updateFeeStructure,
+  deleteFeeStructure,
+  recordPayment,
+  fetchPayments
+} from './utils/supabaseClient';
 
 // School class constants
 const PRIMARY_CLASSES = ['Creche', 'Reception 1', 'Reception 2', 'Nursery 1', 'Nursery 2', 'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4'];
@@ -114,14 +133,35 @@ const AdminDashboard = ({ onLogout }) => {
   // ===== STUDENT OPERATIONS =====
   const handleCreateStudent = async (e) => {
     e.preventDefault();
+    
+    // ===== FORM VALIDATION =====
+    if (!newStudent.firstName?.trim()) {
+      showSuccess('❌ First name is required');
+      return;
+    }
+    if (!newStudent.lastName?.trim()) {
+      showSuccess('❌ Last name is required');
+      return;
+    }
+    if (!newStudent.parentPhoneNumber?.trim()) {
+      showSuccess('❌ Parent phone number is required');
+      return;
+    }
+    // Phone validation (11 digits for Nigerian numbers)
+    if (!/^\d{11}$/.test(newStudent.parentPhoneNumber.replace(/\D/g, ''))) {
+      showSuccess('❌ Phone number must be 11 digits');
+      return;
+    }
+    
     try {
       const newStudentData = {
-        firstName: newStudent.firstName,
-        lastName: newStudent.lastName,
-        email: newStudent.email || '',
-        phone: newStudent.parentPhoneNumber || '',
+        firstName: newStudent.firstName.trim(),
+        lastName: newStudent.lastName.trim(),
+        email: newStudent.email?.trim() || '',
+        phone: newStudent.parentPhoneNumber.trim(),
         level: newStudent.school === 'Primary' ? 'Primary' : 'Secondary',
-        busUser: newStudent.takesSchoolBus
+        busUser: newStudent.takesSchoolBus,
+        boardingStatus: newStudent.boardingStatus
       };
       
       await createStudent(newStudentData);
@@ -230,29 +270,109 @@ const AdminDashboard = ({ onLogout }) => {
   };
 
   // ===== SESSION OPERATIONS (STUB) =====
-  const handleCreateSession = (e) => {
+  const handleCreateSession = async (e) => {
     e.preventDefault();
-    showSuccess('📅 Sessions feature coming soon - managed via Supabase');
-    setNewSession({ name: '', startDate: '', endDate: '' });
+    if (!newSession.name.trim()) {
+      showSuccess('❌ Session name is required');
+      return;
+    }
+    if (!newSession.startDate || !newSession.endDate) {
+      showSuccess('❌ Start and end dates are required');
+      return;
+    }
+    try {
+      if (editingSession) {
+        await updateSession(editingSession, newSession);
+        showSuccess('✅ Session updated successfully');
+      } else {
+        await createSession(newSession);
+        showSuccess('✅ Session created successfully');
+      }
+      setNewSession({ name: '', startDate: '', endDate: '' });
+      setEditingSession(null);
+      loadDashboard();
+    } catch (error) {
+      showSuccess('❌ Error: ' + error.message);
+    }
   };
 
   const handleEditSession = (session) => {
     setEditingSession(session.id);
-    setNewSession(session);
+    setNewSession({
+      name: session.name,
+      startDate: session.start_date,
+      endDate: session.end_date
+    });
   };
 
-  const handleDeleteSession = (id) => {
-    showSuccess('❌ Session management coming soon');
+  const handleDeleteSession = async (id) => {
+    if (window.confirm('Delete this session and all its terms? 🗑️')) {
+      try {
+        await deleteSession(id);
+        showSuccess('✅ Session deleted');
+        loadDashboard();
+      } catch (error) {
+        showSuccess('❌ Error: ' + error.message);
+      }
+    }
   };
 
-  const handleCreateTerm = (e) => {
+  const handleCreateTerm = async (e) => {
     e.preventDefault();
-    showSuccess('📚 Terms feature coming soon');
-    setNewTerm({ sessionId: '', name: '', startDate: '', endDate: '' });
+    if (!selectedSessionForTerms) {
+      showSuccess('❌ Please select a session first');
+      return;
+    }
+    if (!newTerm.name.trim()) {
+      showSuccess('❌ Term name is required');
+      return;
+    }
+    try {
+      if (editingTerm) {
+        await updateTerm(editingTerm, {
+          ...newTerm,
+          sessionId: selectedSessionForTerms
+        });
+        showSuccess('✅ Term updated successfully');
+      } else {
+        await createTerm({
+          ...newTerm,
+          sessionId: selectedSessionForTerms
+        });
+        showSuccess('✅ Term created successfully 📖');
+      }
+      setNewTerm({ sessionId: '', name: '', startDate: '', endDate: '' });
+      setEditingTerm(null);
+      loadTermsForSession(selectedSessionForTerms);
+    } catch (error) {
+      showSuccess('❌ Error: ' + error.message);
+    }
   };
 
-  const handleDeleteTerm = (id) => {
-    showSuccess('❌ Term management coming soon');
+  const handleDeleteTerm = async (id) => {
+    if (window.confirm('Delete this term and all invoices? 🗑️')) {
+      try {
+        await deleteTerm(id);
+        showSuccess('✅ Term deleted');
+        loadTermsForSession(selectedSessionForTerms);
+      } catch (error) {
+        showSuccess('❌ Error: ' + error.message);
+      }
+    }
+  };
+
+  const loadTermsForSession = async (sessionId) => {
+    if (!sessionId) {
+      setTerms([]);
+      return;
+    }
+    try {
+      const termsData = await fetchTerms(sessionId);
+      setTerms(termsData);
+      setSelectedSessionForTerms(sessionId);
+    } catch (error) {
+      console.error('Error loading terms:', error);
+    }
   };
 
   // ===== EXCEL IMPORT/EXPORT OPERATIONS =====

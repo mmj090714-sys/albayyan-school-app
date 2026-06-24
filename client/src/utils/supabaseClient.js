@@ -304,3 +304,312 @@ export const getBankAnalytics = async () => {
     throw error
   }
 }
+
+// ===== SESSION OPERATIONS =====
+export const fetchSessions = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('sessions')
+      .select('*')
+      .order('start_date', { ascending: false })
+    
+    if (error) throw error
+    return data || []
+  } catch (error) {
+    console.error('Error fetching sessions:', error)
+    throw error
+  }
+}
+
+export const createSession = async (sessionData) => {
+  try {
+    const { data, error } = await supabase
+      .from('sessions')
+      .insert([{
+        name: sessionData.name,
+        start_date: sessionData.startDate,
+        end_date: sessionData.endDate,
+        status: 'Active',
+        description: sessionData.description
+      }])
+      .select()
+    
+    if (error) throw error
+    return data?.[0]
+  } catch (error) {
+    console.error('Error creating session:', error)
+    throw error
+  }
+}
+
+export const updateSession = async (sessionId, sessionData) => {
+  try {
+    const { data, error } = await supabase
+      .from('sessions')
+      .update({
+        name: sessionData.name,
+        start_date: sessionData.startDate,
+        end_date: sessionData.endDate,
+        status: sessionData.status
+      })
+      .eq('id', sessionId)
+      .select()
+    
+    if (error) throw error
+    return data?.[0]
+  } catch (error) {
+    console.error('Error updating session:', error)
+    throw error
+  }
+}
+
+export const deleteSession = async (sessionId) => {
+  try {
+    const { error } = await supabase
+      .from('sessions')
+      .delete()
+      .eq('id', sessionId)
+    
+    if (error) throw error
+    return true
+  } catch (error) {
+    console.error('Error deleting session:', error)
+    throw error
+  }
+}
+
+// ===== TERM OPERATIONS =====
+export const fetchTerms = async (sessionId) => {
+  try {
+    let query = supabase.from('terms').select('*')
+    
+    if (sessionId) {
+      query = query.eq('session_id', sessionId)
+    }
+    
+    const { data, error } = await query.order('start_date', { ascending: true })
+    
+    if (error) throw error
+    return data || []
+  } catch (error) {
+    console.error('Error fetching terms:', error)
+    throw error
+  }
+}
+
+export const createTerm = async (termData) => {
+  try {
+    const { data, error } = await supabase
+      .from('terms')
+      .insert([{
+        session_id: termData.sessionId,
+        name: termData.name,
+        start_date: termData.startDate,
+        end_date: termData.endDate,
+        status: 'Active'
+      }])
+      .select()
+    
+    if (error) throw error
+    return data?.[0]
+  } catch (error) {
+    console.error('Error creating term:', error)
+    throw error
+  }
+}
+
+export const updateTerm = async (termId, termData) => {
+  try {
+    const { data, error } = await supabase
+      .from('terms')
+      .update({
+        name: termData.name,
+        start_date: termData.startDate,
+        end_date: termData.endDate,
+        status: termData.status
+      })
+      .eq('id', termId)
+      .select()
+    
+    if (error) throw error
+    return data?.[0]
+  } catch (error) {
+    console.error('Error updating term:', error)
+    throw error
+  }
+}
+
+export const deleteTerm = async (termId) => {
+  try {
+    const { error } = await supabase
+      .from('terms')
+      .delete()
+      .eq('id', termId)
+    
+    if (error) throw error
+    return true
+  } catch (error) {
+    console.error('Error deleting term:', error)
+    throw error
+  }
+}
+
+// ===== FEE STRUCTURE OPERATIONS =====
+export const fetchFeeStructures = async (termId) => {
+  try {
+    let query = supabase.from('fee_structures').select('*')
+    
+    if (termId) {
+      query = query.eq('term_id', termId)
+    }
+    
+    const { data, error } = await query.order('class_level', { ascending: true })
+    
+    if (error) throw error
+    return data || []
+  } catch (error) {
+    console.error('Error fetching fee structures:', error)
+    throw error
+  }
+}
+
+export const createFeeStructure = async (feeData) => {
+  try {
+    const { data, error } = await supabase
+      .from('fee_structures')
+      .insert([{
+        term_id: feeData.termId,
+        class_level: feeData.classLevel,
+        school_type: feeData.schoolType,
+        new_student_fee: parseFloat(feeData.newStudentFee) || 0,
+        returning_student_fee: parseFloat(feeData.returningStudentFee) || 0,
+        additional_charges: parseFloat(feeData.additionalCharges) || 0
+      }])
+      .select()
+    
+    if (error) throw error
+    return data?.[0]
+  } catch (error) {
+    console.error('Error creating fee structure:', error)
+    throw error
+  }
+}
+
+export const updateFeeStructure = async (feeId, feeData) => {
+  try {
+    const { data, error } = await supabase
+      .from('fee_structures')
+      .update({
+        new_student_fee: parseFloat(feeData.newStudentFee) || 0,
+        returning_student_fee: parseFloat(feeData.returningStudentFee) || 0,
+        additional_charges: parseFloat(feeData.additionalCharges) || 0
+      })
+      .eq('id', feeId)
+      .select()
+    
+    if (error) throw error
+    return data?.[0]
+  } catch (error) {
+    console.error('Error updating fee structure:', error)
+    throw error
+  }
+}
+
+export const deleteFeeStructure = async (feeId) => {
+  try {
+    const { error } = await supabase
+      .from('fee_structures')
+      .delete()
+      .eq('id', feeId)
+    
+    if (error) throw error
+    return true
+  } catch (error) {
+    console.error('Error deleting fee structure:', error)
+    throw error
+  }
+}
+
+// ===== PAYMENT OPERATIONS =====
+export const recordPayment = async (paymentData) => {
+  try {
+    // Generate receipt number
+    const receiptNumber = `RCP/${new Date().getFullYear()}/${Math.random().toString(36).substr(2, 9).toUpperCase()}`
+    
+    const { data: paymentRecord, error: paymentError } = await supabase
+      .from('payments')
+      .insert([{
+        invoice_id: paymentData.invoiceId,
+        student_id: paymentData.studentId,
+        amount_paid: parseFloat(paymentData.amountPaid),
+        payment_method: paymentData.paymentMethod,
+        bank_name: paymentData.bankName || null,
+        receipt_number: receiptNumber,
+        paid_by_name: paymentData.paidByName,
+        payment_date: paymentData.paymentDate || new Date().toISOString().split('T')[0],
+        transaction_reference: paymentData.transactionReference || null,
+        recorded_by: localStorage.getItem('username') || 'System'
+      }])
+      .select()
+    
+    if (paymentError) throw paymentError
+    
+    // Update invoice status
+    const invoiceResponse = await supabase
+      .from('invoices')
+      .select('amount')
+      .eq('id', paymentData.invoiceId)
+      .single()
+    
+    if (invoiceResponse.data) {
+      const invoiceAmount = invoiceResponse.data.amount
+      const totalPaid = paymentData.amountPaid
+      const newStatus = totalPaid >= invoiceAmount ? 'Paid' : 'Partial'
+      
+      await supabase
+        .from('invoices')
+        .update({ status: newStatus })
+        .eq('id', paymentData.invoiceId)
+    }
+    
+    return paymentRecord?.[0]
+  } catch (error) {
+    console.error('Error recording payment:', error)
+    throw error
+  }
+}
+
+export const fetchPayments = async (studentId = null) => {
+  try {
+    let query = supabase
+      .from('payments')
+      .select('*, students(first_name, last_name), invoices(term, amount)')
+    
+    if (studentId) {
+      query = query.eq('student_id', studentId)
+    }
+    
+    const { data, error } = await query.order('created_at', { ascending: false })
+    
+    if (error) throw error
+    return data || []
+  } catch (error) {
+    console.error('Error fetching payments:', error)
+    throw error
+  }
+}
+
+export const deletePayment = async (paymentId) => {
+  try {
+    const { error } = await supabase
+      .from('payments')
+      .delete()
+      .eq('id', paymentId)
+    
+    if (error) throw error
+    return true
+  } catch (error) {
+    console.error('Error deleting payment:', error)
+    throw error
+  }
+}
