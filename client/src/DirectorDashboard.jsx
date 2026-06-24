@@ -1,13 +1,18 @@
 import React, { useState, useEffect } from 'react';
+import { Pie, Bar } from 'react-chartjs-2';
+import { Chart as ChartJS, ArcElement, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
 import SchoolHeader from './SchoolHeader';
 import './DirectorDashboard.css';
-import { fetchStudents, logout } from './utils/supabaseClient';
+import { fetchStudents, logout, getBankAnalytics } from './utils/supabaseClient';
+
+ChartJS.register(ArcElement, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 const DirectorDashboard = ({ onLogout }) => {
   const [students, setStudents] = useState([]);
   const [invoices, setInvoices] = useState([]);
   const [payments, setPayments] = useState([]);
   const [summary, setSummary] = useState(null);
+  const [bankAnalytics, setBankAnalytics] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -23,6 +28,7 @@ const DirectorDashboard = ({ onLogout }) => {
     try {
       setLoading(true);
       const studentsData = await fetchStudents();
+      const analyticsData = await getBankAnalytics();
       
       // Calculate summary stats
       const totalAmount = studentsData.reduce((sum, s) => sum + s.totalAmount, 0);
@@ -54,6 +60,9 @@ const DirectorDashboard = ({ onLogout }) => {
         totalOutstanding: outstandingBalance || 0,
         collectionRate: totalAmount > 0 ? Math.round((totalCollected / totalAmount) * 100) : 0
       });
+      
+      // Set bank analytics
+      setBankAnalytics(analyticsData);
       
       // Map invoices from students data
       const allInvoicesWithStudent = studentsData.flatMap(s => 
@@ -108,6 +117,7 @@ const DirectorDashboard = ({ onLogout }) => {
             { key: 'students', label: '👥 Students' },
             { key: 'invoices', label: '📄 Invoices' },
             { key: 'payments', label: '💳 Payments' },
+            { key: 'analytics', label: '📈 Analytics' },
             { key: 'notifications', label: '🔔 Notifications' }
           ].map(tab => (
             <button
@@ -313,6 +323,179 @@ const DirectorDashboard = ({ onLogout }) => {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* ANALYTICS TAB */}
+        {activeTab === 'analytics' && bankAnalytics && (
+          <div className="director-tab-content">
+            <h2>📈 Bank-wise Payment Analytics</h2>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', marginBottom: '40px' }}>
+              {/* PIE CHART - Payment Distribution by Bank */}
+              <div style={{ 
+                backgroundColor: '#fff', 
+                padding: '20px', 
+                borderRadius: '8px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+              }}>
+                <h3 style={{ textAlign: 'center', marginBottom: '20px' }}>💵 Payment Distribution (%)</h3>
+                {Object.keys(bankAnalytics.bankData).some(b => bankAnalytics.bankData[b].amount > 0) ? (
+                  <Pie
+                    data={{
+                      labels: Object.keys(bankAnalytics.bankData),
+                      datasets: [{
+                        data: Object.values(bankAnalytics.bankData).map(b => parseFloat(b.percentage)),
+                        backgroundColor: [
+                          '#FF6384',
+                          '#36A2EB',
+                          '#FFCE56',
+                          '#4BC0C0',
+                          '#9966FF'
+                        ],
+                        borderColor: '#fff',
+                        borderWidth: 2
+                      }]
+                    }}
+                    options={{
+                      responsive: true,
+                      plugins: {
+                        legend: { position: 'bottom' }
+                      }
+                    }}
+                  />
+                ) : (
+                  <p style={{ textAlign: 'center', color: '#7f8c8d' }}>No payment data available</p>
+                )}
+              </div>
+
+              {/* BAR CHART - Amount by Bank */}
+              <div style={{ 
+                backgroundColor: '#fff', 
+                padding: '20px', 
+                borderRadius: '8px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+              }}>
+                <h3 style={{ textAlign: 'center', marginBottom: '20px' }}>💰 Amount Received by Bank (₦)</h3>
+                {Object.keys(bankAnalytics.bankData).some(b => bankAnalytics.bankData[b].amount > 0) ? (
+                  <Bar
+                    data={{
+                      labels: Object.keys(bankAnalytics.bankData),
+                      datasets: [{
+                        label: 'Amount (₦)',
+                        data: Object.values(bankAnalytics.bankData).map(b => b.amount),
+                        backgroundColor: '#3498db',
+                        borderColor: '#2980b9',
+                        borderWidth: 1
+                      }]
+                    }}
+                    options={{
+                      responsive: true,
+                      indexAxis: 'y',
+                      plugins: {
+                        legend: { display: false }
+                      },
+                      scales: {
+                        x: {
+                          ticks: {
+                            callback: function(value) {
+                              return '₦' + value.toLocaleString();
+                            }
+                          }
+                        }
+                      }
+                    }}
+                  />
+                ) : (
+                  <p style={{ textAlign: 'center', color: '#7f8c8d' }}>No payment data available</p>
+                )}
+              </div>
+            </div>
+
+            {/* BANK SUMMARY TABLE */}
+            <div style={{ 
+              backgroundColor: '#fff', 
+              padding: '20px', 
+              borderRadius: '8px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+              marginBottom: '30px'
+            }}>
+              <h3>🏦 Bank-wise Summary</h3>
+              <table style={{
+                width: '100%',
+                borderCollapse: 'collapse',
+                marginTop: '15px'
+              }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#ecf0f1', borderBottom: '2px solid #bdc3c7' }}>
+                    <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>Bank</th>
+                    <th style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold' }}>Amount (₦)</th>
+                    <th style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold' }}>Percentage</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.entries(bankAnalytics.bankData).map(([bank, data]) => (
+                    <tr key={bank} style={{ borderBottom: '1px solid #ecf0f1' }}>
+                      <td style={{ padding: '12px', fontWeight: '500' }}>{bank}</td>
+                      <td style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: '#27ae60' }}>
+                        ₦{data.amount.toLocaleString()}
+                      </td>
+                      <td style={{ padding: '12px', textAlign: 'right', color: '#3498db', fontWeight: '600' }}>
+                        {data.percentage}%
+                      </td>
+                    </tr>
+                  ))}
+                  <tr style={{ backgroundColor: '#ecf0f1', fontWeight: 'bold', borderTop: '2px solid #bdc3c7' }}>
+                    <td style={{ padding: '12px' }}>TOTAL</td>
+                    <td style={{ padding: '12px', textAlign: 'right', color: '#27ae60' }}>
+                      ₦{bankAnalytics.totalExpected.toLocaleString()}
+                    </td>
+                    <td style={{ padding: '12px', textAlign: 'right', color: '#3498db' }}>100%</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            {/* TERM-WISE BREAKDOWN */}
+            <div style={{ 
+              backgroundColor: '#fff', 
+              padding: '20px', 
+              borderRadius: '8px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+            }}>
+              <h3>📚 Invoice Summary by Term</h3>
+              <table style={{
+                width: '100%',
+                borderCollapse: 'collapse',
+                marginTop: '15px'
+              }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#ecf0f1', borderBottom: '2px solid #bdc3c7' }}>
+                    <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>Term</th>
+                    <th style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold' }}>Invoices</th>
+                    <th style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold' }}>Total Amount (₦)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.entries(bankAnalytics.termData).map(([termKey, termInfo]) => (
+                    <tr key={termKey} style={{ borderBottom: '1px solid #ecf0f1' }}>
+                      <td style={{ padding: '12px', fontWeight: '500' }}>{termInfo.term || 'Unassigned'}</td>
+                      <td style={{ padding: '12px', textAlign: 'right' }}>{termInfo.totalInvoices}</td>
+                      <td style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: '#27ae60' }}>
+                        ₦{termInfo.totalAmount.toLocaleString()}
+                      </td>
+                    </tr>
+                  ))}
+                  <tr style={{ backgroundColor: '#ecf0f1', fontWeight: 'bold', borderTop: '2px solid #bdc3c7' }}>
+                    <td style={{ padding: '12px' }}>TOTAL</td>
+                    <td style={{ padding: '12px', textAlign: 'right' }}>{bankAnalytics.totalInvoices}</td>
+                    <td style={{ padding: '12px', textAlign: 'right', color: '#27ae60' }}>
+                      ₦{bankAnalytics.totalExpected.toLocaleString()}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 

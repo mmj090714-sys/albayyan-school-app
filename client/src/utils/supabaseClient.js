@@ -236,3 +236,71 @@ export const getDirectorSummary = async () => {
     throw error
   }
 }
+
+// Analytics: Bank-wise payment data
+export const getBankAnalytics = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('invoices')
+      .select('*, students(first_name, last_name)')
+    
+    if (error) throw error
+    
+    const invoices = data || []
+    
+    // Mock bank distribution for MVP (since current schema doesn't have explicit bank field)
+    // In production, parse from payment_method or add dedicated bank column
+    const bankData = {
+      'UBA': { amount: 0, count: 0, percentage: 0 },
+      'Sterling': { amount: 0, count: 0, percentage: 0 },
+      'Unity': { amount: 0, count: 0, percentage: 0 },
+      'Moniepoint': { amount: 0, count: 0, percentage: 0 },
+      'Cash': { amount: 0, count: 0, percentage: 0 }
+    }
+    
+    // For MVP: Simulate payment distribution
+    // TODO: When payments table is created, replace with actual payment data
+    const totalAmount = invoices.reduce((sum, inv) => sum + (inv.amount || 0), 0)
+    
+    if (totalAmount > 0) {
+      // Distribute hypothetically for demo
+      bankData['UBA'].amount = Math.round(totalAmount * 0.35)
+      bankData['Sterling'].amount = Math.round(totalAmount * 0.25)
+      bankData['Unity'].amount = Math.round(totalAmount * 0.18)
+      bankData['Moniepoint'].amount = Math.round(totalAmount * 0.15)
+      bankData['Cash'].amount = totalAmount - bankData['UBA'].amount - bankData['Sterling'].amount - bankData['Unity'].amount - bankData['Moniepoint'].amount
+      
+      Object.keys(bankData).forEach(bank => {
+        bankData[bank].percentage = ((bankData[bank].amount / totalAmount) * 100).toFixed(1)
+      })
+    }
+    
+    // Group invoices by term
+    const termData = {}
+    invoices.forEach(inv => {
+      const term = inv.term || 'Unassigned'
+      if (!termData[term]) {
+        termData[term] = {
+          term,
+          totalInvoices: 0,
+          totalAmount: 0,
+          invoices: []
+        }
+      }
+      termData[term].totalInvoices += 1
+      termData[term].totalAmount += inv.amount || 0
+      termData[term].invoices.push(inv)
+    })
+    
+    return {
+      bankData,
+      termData,
+      totalInvoices: invoices.length,
+      totalExpected: totalAmount,
+      invoices
+    }
+  } catch (error) {
+    console.error('Error fetching bank analytics:', error)
+    throw error
+  }
+}
