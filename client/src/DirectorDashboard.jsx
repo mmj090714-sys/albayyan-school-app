@@ -29,16 +29,34 @@ const DirectorDashboard = ({ onLogout }) => {
       const totalCollected = studentsData.reduce((sum, s) => sum + s.paidAmount, 0);
       const outstandingBalance = totalAmount - totalCollected;
       
+      // Count students by type
+      const primaryStudents = studentsData.filter(s => s.level === 'Primary').length;
+      const secondaryStudents = studentsData.filter(s => s.level === 'Secondary').length;
+      const totalBoarders = studentsData.filter(s => s.boardingStatus).length;
+      const totalBusUsers = studentsData.filter(s => s.busUser).length;
+      
+      // Count invoices
+      const allInvoices = studentsData.flatMap(s => s.invoices);
+      const totalInvoices = allInvoices.length;
+      const totalPayments = allInvoices.filter(inv => inv.status === 'Paid').length;
+      
       setSummary({
         totalStudents: studentsData.length,
-        totalAmount,
-        totalCollected,
-        outstandingBalance,
-        paymentPercentage: totalAmount > 0 ? Math.round((totalCollected / totalAmount) * 100) : 0
+        primaryStudents,
+        secondaryStudents,
+        totalBoarders,
+        totalBusUsers,
+        totalInvoices,
+        totalPayments,
+        recentPayments: totalPayments,
+        totalExpected: totalAmount || 0,
+        totalCollected: totalCollected || 0,
+        totalOutstanding: outstandingBalance || 0,
+        collectionRate: totalAmount > 0 ? Math.round((totalCollected / totalAmount) * 100) : 0
       });
       
       // Map invoices from students data
-      const allInvoices = studentsData.flatMap(s => 
+      const allInvoicesWithStudent = studentsData.flatMap(s => 
         s.invoices.map(inv => ({
           ...inv,
           student: { firstName: s.firstName, lastName: s.lastName }
@@ -46,8 +64,8 @@ const DirectorDashboard = ({ onLogout }) => {
       );
       
       setStudents(studentsData);
-      setInvoices(allInvoices);
-      setPayments(allInvoices.filter(inv => inv.status === 'Paid'));
+      setInvoices(allInvoicesWithStudent);
+      setPayments(allInvoicesWithStudent.filter(inv => inv.status === 'Paid'));
       setError(null);
     } catch (err) {
       console.error('Error loading dashboard:', err);
