@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import './AdminDashboard.css';
 import ReceiptModal from './ReceiptModal';
 import SchoolHeader from './SchoolHeader';
 import { exportStudentsToExcel, parseStudentsFromExcel, downloadExcelTemplate } from './utils/excelUtils';
+import { fetchStudents, createStudent, bulkImportStudents, logout } from './utils/supabaseClient';
 
 // School class constants
 const PRIMARY_CLASSES = ['Creche', 'Reception 1', 'Reception 2', 'Nursery 1', 'Nursery 2', 'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4'];
@@ -76,9 +76,6 @@ const AdminDashboard = ({ onLogout }) => {
   const [debtorsFilterTerm, setDebtorsFilterTerm] = useState('');
   const [debtorsFilterClass, setDebtorsFilterClass] = useState('');
 
-  const API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api`;
-  const headers = { Authorization: `Bearer ${adminToken}` };
-
   // Show success message
   const showSuccess = (msg) => {
     setSuccessMessage(msg);
@@ -92,51 +89,88 @@ const AdminDashboard = ({ onLogout }) => {
 
   const loadDashboard = async () => {
     try {
-      const [statsRes, studentsRes, sessionsRes, feesRes, invoicesRes, paymentsRes] = await Promise.all([
-        axios.get(`${API_URL}/admin/stats`, { headers }),
-        axios.get(`${API_URL}/admin/students`, { headers }),
-        axios.get(`${API_URL}/admin/sessions`, { headers }),
-        axios.get(`${API_URL}/admin/fee-structures`, { headers }),
-        axios.get(`${API_URL}/admin/invoices`, { headers }),
-        axios.get(`${API_URL}/admin/payments`, { headers })
-      ]);
+      const studentsData = await fetchStudents();
+      setStudents(studentsData);
       
-      setStats(statsRes.data);
-      setStudents(studentsRes.data);
-      setSessions(sessionsRes.data);
-      setFeeStructures(feesRes.data);
-      setInvoices(invoicesRes.data);
-      setPayments(paymentsRes.data);
+      // Calculate stats from students
+      const totalStudents = studentsData.length;
+      const totalAmount = studentsData.reduce((sum, s) => sum + s.totalAmount, 0);
+      const paidAmount = studentsData.reduce((sum, s) => sum + s.paidAmount, 0);
+      
+      setStats({
+        totalStudents,
+        totalAmount,
+        paidAmount,
+        pendingAmount: totalAmount - paidAmount,
+        paymentPercentage: totalAmount > 0 ? Math.round((paidAmount / totalAmount) * 100) : 0
+      });
     } catch (error) {
       console.error('Error loading dashboard:', error);
+      showSuccess('Error loading data: ' + error.message);
     }
   };
 
-  // ===== SESSION OPERATIONS =====
-  const handleCreateSession = async (e) => {
+  // ===== STUDENT OPERATIONS =====
+  const handleCreateStudent = async (e) => {
     e.preventDefault();
     try {
-      if (editingSession) {
-        await axios.put(`${API_URL}/admin/sessions/${editingSession}`, newSession, { headers });
-        showSuccess('✅ Session updated successfully');
-      } else {
-        await axios.post(`${API_URL}/admin/sessions`, newSession, { headers });
-        showSuccess('✅ Session created successfully');
-      }
-      setNewSession({ name: '', startDate: '', endDate: '' });
-      setEditingSession(null);
+      const newStudentData = {
+        firstName: newStudent.firstName,
+        lastName: newStudent.lastName,
+        email: newStudent.email || '',
+        phone: newStudent.parentPhoneNumber || '',
+        level: newStudent.school === 'Primary' ? 'Primary' : 'Secondary',
+        busUser: newStudent.takesSchoolBus
+      };
+      
+      await createStudent(newStudentData);
+      showSuccess('✅ Student created successfully');
+      setNewStudent({ 
+        firstName: '', 
+        lastName: '', 
+        school: 'Secondary',
+        classLevel: 'JSS 1', 
+        parentPhoneNumber: '', 
+        boardingStatus: false,
+        takesSchoolBus: false
+      });
       loadDashboard();
     } catch (error) {
-      showSuccess('❌ Error: ' + (error.response?.data?.error || error.message));
+      showSuccess('❌ Error: ' + error.message);
     }
   };
 
-  const handleDeleteSession = async (id) => {
-    if (window.confirm('Delete this session? 🗑️')) {
-      try {
-        await axios.delete(`${API_URL}/admin/sessions/${id}`, { headers });
-        showSuccess('✅ Session deleted');
-        loadDashboard();
+  const handleExcelImport = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    setIsImporting(true);
+    try {
+      const parsedStudents = await parseStudentsFromExcel(file);
+      const results = await bulkImportStudents(parsedStudents);
+      setImportResults(results);
+      showSuccess(`✅ Imported ${results.successful} students, ${results.failed} failed`);
+      loadDashboard();
+    } catch (error) {
+      showSuccess('❌ Error: ' + error.message);
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  const handleExcelExport = () => {
+    try {
+      exportStudentsToExcel(students);
+      showSuccess('✅ Exported students to Excel');
+    } catch (error) {
+      showSuccess('❌ Error: ' + error.message);
+    }
+  };
+
+  const handleLogoutClick = () => {
+    logout();
+    onLogout();
+  };
       } catch (error) {
         showSuccess('❌ Error: ' + error.response?.data?.error);
       }

@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import { loginAdmin } from './utils/supabaseClient';
 import './AuthPages.css';
 import SchoolHeader from './SchoolHeader';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const AdminLogin = ({ onLoginSuccess, onBackHome }) => {
   const [username, setUsername] = useState('');
@@ -17,20 +15,15 @@ const AdminLogin = ({ onLoginSuccess, onBackHome }) => {
     setLoading(true);
 
     try {
-      const response = await axios.post(`${API_URL}/api/auth/admin/login`, {
-        username,
-        password
-      });
-
-      if (response.data.token) {
-        localStorage.setItem('adminToken', response.data.token);
-        localStorage.setItem('userRole', 'admin');
+      const result = await loginAdmin(username, password);
+      
+      if (result.token) {
         setUsername('');
         setPassword('');
         onLoginSuccess();
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'Login failed. Please try again.');
+      setError(err.message || 'Login failed. Please try again.');
     } finally {
       setLoading(false);
     }
