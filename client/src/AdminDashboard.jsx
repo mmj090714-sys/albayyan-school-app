@@ -171,11 +171,6 @@ const AdminDashboard = ({ onLogout }) => {
     logout();
     onLogout();
   };
-      } catch (error) {
-        showSuccess('❌ Error: ' + error.response?.data?.error);
-      }
-    }
-  };
 
   const handleActivateSession = async (id) => {
     try {
@@ -247,25 +242,6 @@ const AdminDashboard = ({ onLogout }) => {
       } catch (error) {
         showSuccess('❌ Error: ' + (error.response?.data?.message || error.response?.data?.error));
       }
-    }
-  };
-
-  // ===== STUDENT OPERATIONS =====
-  const handleCreateStudent = async (e) => {
-    e.preventDefault();
-    try {
-      if (editingStudent) {
-        await axios.put(`${API_URL}/admin/students/${editingStudent}`, newStudent, { headers });
-        showSuccess('✅ Student updated');
-      } else {
-        await axios.post(`${API_URL}/admin/students`, newStudent, { headers });
-        showSuccess('✅ Student created 🎓');
-      }
-      setNewStudent({ firstName: '', lastName: '', school: 'Secondary', classLevel: 'JSS 1', parentPhoneNumber: '', boardingStatus: false, takesSchoolBus: false });
-      setEditingStudent(null);
-      loadDashboard();
-    } catch (error) {
-      showSuccess('❌ Error: ' + (error.response?.data?.error || error.message));
     }
   };
 
