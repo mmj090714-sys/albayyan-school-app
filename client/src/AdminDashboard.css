@@ -606,31 +606,117 @@ label input[type="checkbox"]:hover {
 }
 
 /* ===== RESPONSIVE DESIGN ===== */
+@media (max-width: 1200px) {
+  .admin-container {
+    max-width: 100%;
+    padding: 0;
+  }
+
+  .admin-header-actions {
+    padding: 15px 20px;
+  }
+
+  .admin-content {
+    padding: 20px;
+  }
+
+  .tab-content {
+    padding: 25px;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .form-row {
+    gap: 15px;
+  }
+}
+
 @media (max-width: 1024px) {
   .admin-container {
+    padding: 0;
+  }
+
+  .admin-header-actions {
+    padding: 12px 15px;
+    gap: 10px;
+  }
+
+  .admin-content {
     padding: 15px;
   }
 
-  .admin-header {
-    flex-direction: column;
-    gap: 15px;
-    text-align: center;
+  .logout-btn {
+    padding: 10px 16px;
+    font-size: 14px;
   }
 
-  .admin-header h1 {
-    font-size: 22px;
+  .admin-tabs {
+    gap: 8px;
+    padding: 6px;
+    flex-wrap: wrap;
+  }
+
+  .tab-btn {
+    padding: 10px 16px;
+    font-size: 14px;
   }
 
   .tab-content {
     padding: 20px;
+    border-radius: 12px;
+  }
+
+  .tab-content h2 {
+    font-size: 22px;
+    margin-bottom: 15px;
+  }
+
+  .tab-content h3 {
+    font-size: 18px;
+    margin-top: 20px;
+    margin-bottom: 15px;
+  }
+
+  .form {
+    padding: 20px;
+    margin-bottom: 20px;
   }
 
   .form-row {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .input-wrapper input,
+  .input-wrapper select {
+    padding: 11px 12px 11px 40px;
+    font-size: 14px;
+  }
+
+  .submit-button,
+  .cancel-button {
+    padding: 11px 20px;
+    font-size: 14px;
   }
 
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+
+  .stat-card {
+    padding: 20px;
+  }
+
+  .stat-card h3 {
+    font-size: 13px;
+  }
+
+  .stat-card .stat-number {
+    font-size: 28px;
   }
 
   .data-table {
@@ -641,36 +727,6 @@ label input[type="checkbox"]:hover {
   .data-table td {
     padding: 12px;
   }
-}
-
-@media (max-width: 768px) {
-  .admin-tabs {
-    flex-direction: column;
-  }
-
-  .tab-btn {
-    width: 100%;
-    text-align: center;
-  }
-
-  .stats-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .tab-content h2 {
-    font-size: 20px;
-  }
-
-  .data-table {
-    display: block;
-    overflow-x: auto;
-  }
-
-  .data-table th,
-  .data-table td {
-    padding: 10px;
-    font-size: 12px;
-  }
 
   .action-btn {
     width: 32px;
@@ -679,43 +735,457 @@ label input[type="checkbox"]:hover {
   }
 }
 
-@media (max-width: 480px) {
-  .admin-container {
-    padding: 10px;
+@media (max-width: 768px) {
+  .admin-header-actions {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
   }
 
-  .admin-header h1 {
-    font-size: 18px;
+  .logout-btn {
+    padding: 8px 14px;
+    font-size: 12px;
+    gap: 4px;
+  }
+
+  .admin-content {
+    padding: 10px;
+    min-height: auto;
+  }
+
+  .admin-tabs {
+    gap: 6px;
+    padding: 4px;
+    margin-bottom: 15px;
+    flex-direction: column;
+  }
+
+  .tab-btn {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 13px;
+    text-align: center;
+    white-space: normal;
+  }
+
+  .tab-btn.active::after {
+    display: none;
   }
 
   .tab-content {
     padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 15px;
+  }
+
+  .tab-content h2 {
+    font-size: 18px;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+  }
+
+  .tab-content h3 {
+    font-size: 16px;
+    margin-top: 15px;
+    margin-bottom: 12px;
+  }
+
+  .section {
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+  }
+
+  .form {
+    padding: 15px;
+    margin-bottom: 15px;
+    border-left-width: 4px;
   }
 
   .form-row {
+    grid-template-columns: 1fr;
     gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .input-wrapper {
+    width: 100%;
+  }
+
+  .input-wrapper i {
+    left: 10px;
   }
 
   .input-wrapper input,
   .input-wrapper select {
+    padding: 10px 10px 10px 36px;
     font-size: 14px;
-    padding: 10px 10px 10px 35px;
+    border-radius: 8px;
+  }
+
+  .input-wrapper input:focus,
+  .input-wrapper select:focus {
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  }
+
+  label {
+    font-size: 14px;
+    gap: 8px;
   }
 
   .submit-button,
   .cancel-button {
-    padding: 10px 16px;
+    width: 100%;
+    padding: 11px 16px;
     font-size: 13px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+  }
+
+  .cancel-button {
+    margin-bottom: 0;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .stat-card {
+    padding: 16px;
+  }
+
+  .stat-card h3 {
+    font-size: 12px;
+    margin-bottom: 8px;
   }
 
   .stat-card .stat-number {
     font-size: 24px;
+    margin: 8px 0;
+  }
+
+  .stat-card small {
+    font-size: 12px;
+  }
+
+  .data-table {
+    font-size: 12px;
+    overflow-x: auto;
+    display: block;
+    box-shadow: var(--shadow-md);
+  }
+
+  .data-table thead {
+    display: block;
+    position: relative;
+  }
+
+  .data-table th {
+    padding: 10px;
+    font-size: 12px;
+    display: inline-block;
+    min-width: 120px;
+  }
+
+  .data-table tbody {
+    display: block;
+    overflow-x: auto;
+  }
+
+  .data-table tr {
+    display: inline-block;
+    vertical-align: top;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-right: 10px;
+  }
+
+  .data-table td {
+    display: block;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+    font-size: 12px;
+    min-width: 150px;
+  }
+
+  .data-table td::before {
+    content: attr(data-label);
+    font-weight: 700;
+    color: var(--primary);
+    display: block;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    font-size: 11px;
+  }
+
+  .data-table td:last-child {
+    border-bottom: none;
+  }
+
+  .action-btn {
+    width: 30px;
+    height: 30px;
+    font-size: 13px;
+    margin-right: 3px;
   }
 
   .success-toast {
+    position: fixed;
     top: 10px;
     right: 10px;
     left: 10px;
+    border-radius: 8px;
+    font-size: 13px;
+    padding: 12px 16px;
+    z-index: 1000;
+  }
+}
+
+@media (max-width: 600px) {
+  .admin-header-actions {
+    padding: 8px 10px;
+  }
+
+  .logout-btn {
+    padding: 6px 12px;
+    font-size: 11px;
+  }
+
+  .admin-content {
+    padding: 8px;
+  }
+
+  .admin-tabs {
+    gap: 4px;
+    margin-bottom: 10px;
+  }
+
+  .tab-btn {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+
+  .tab-content {
+    padding: 12px;
+    margin-bottom: 10px;
+  }
+
+  .tab-content h2 {
+    font-size: 16px;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+  }
+
+  .tab-content h3 {
+    font-size: 14px;
+    margin-top: 12px;
+    margin-bottom: 10px;
+  }
+
+  .form {
+    padding: 12px;
+    margin-bottom: 12px;
+    border-left-width: 3px;
+  }
+
+  .form-row {
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .input-wrapper input,
+  .input-wrapper select {
+    padding: 9px 9px 9px 34px;
+    font-size: 13px;
+  }
+
+  .input-wrapper i {
+    font-size: 16px;
+  }
+
+  .submit-button,
+  .cancel-button {
+    padding: 9px 12px;
+    font-size: 12px;
+  }
+
+  .stat-card {
+    padding: 12px;
+  }
+
+  .stat-card h3 {
+    font-size: 11px;
+  }
+
+  .stat-card .stat-number {
+    font-size: 20px;
+  }
+
+  .stat-card small {
+    font-size: 11px;
+  }
+
+  .data-table {
+    font-size: 11px;
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: 8px;
+  }
+
+  .action-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+
+  .success-toast {
+    font-size: 12px;
+    padding: 10px 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-container {
+    padding: 0;
+  }
+
+  .admin-header-actions {
+    padding: 6px 8px;
+    flex-wrap: wrap;
+  }
+
+  .logout-btn {
+    padding: 6px 10px;
+    font-size: 10px;
+  }
+
+  .admin-content {
+    padding: 6px;
+    min-height: 100vh;
+  }
+
+  .admin-tabs {
+    gap: 3px;
+    padding: 3px;
+    margin-bottom: 8px;
+  }
+
+  .tab-btn {
+    padding: 6px 8px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .tab-content {
+    padding: 10px;
+    margin-bottom: 8px;
+    border-radius: 8px;
+  }
+
+  .tab-content h2 {
+    font-size: 14px;
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+  }
+
+  .tab-content h3 {
+    font-size: 13px;
+    margin-top: 10px;
+    margin-bottom: 8px;
+  }
+
+  .section {
+    margin-bottom: 15px;
+    padding-bottom: 12px;
+  }
+
+  .form {
+    padding: 10px;
+    margin-bottom: 10px;
+  }
+
+  .form-row {
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+
+  .input-wrapper input,
+  .input-wrapper select {
+    padding: 8px 8px 8px 32px;
+    font-size: 12px;
+    border-radius: 6px;
+  }
+
+  .input-wrapper i {
+    left: 8px;
+    font-size: 14px;
+  }
+
+  label {
+    font-size: 12px;
+  }
+
+  label input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+  }
+
+  .submit-button,
+  .cancel-button {
+    padding: 8px 10px;
+    font-size: 11px;
+    border-radius: 6px;
+    margin-bottom: 6px;
+  }
+
+  .stat-card {
+    padding: 10px;
+  }
+
+  .stat-card h3 {
+    font-size: 10px;
+    margin-bottom: 6px;
+  }
+
+  .stat-card .stat-number {
+    font-size: 18px;
+    margin: 6px 0;
+  }
+
+  .stat-card small {
+    font-size: 10px;
+  }
+
+  .data-table {
+    font-size: 10px;
+  }
+
+  .data-table tr {
+    margin-right: 6px;
+  }
+
+  .data-table td {
+    padding: 6px 8px;
+    min-width: 130px;
+    font-size: 10px;
+  }
+
+  .data-table td::before {
+    font-size: 9px;
+  }
+
+  .action-btn {
+    width: 26px;
+    height: 26px;
+    font-size: 11px;
+    margin-right: 2px;
+  }
+
+  .success-toast {
+    font-size: 11px;
+    padding: 8px 10px;
     border-radius: 6px;
   }
 }
