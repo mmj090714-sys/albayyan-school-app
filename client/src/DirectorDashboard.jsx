@@ -1,15 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import SchoolHeader from './SchoolHeader';
 import './DirectorDashboard.css';
-
-const API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api`;
+import { fetchStudents, logout } from './utils/supabaseClient';
 
 const DirectorDashboard = ({ onLogout }) => {
   const [students, setStudents] = useState([]);
   const [invoices, setInvoices] = useState([]);
   const [payments, setPayments] = useState([]);
-  const [notifications, setNotifications] = useState([]);
   const [summary, setSummary] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [loading, setLoading] = useState(true);
@@ -20,29 +17,37 @@ const DirectorDashboard = ({ onLogout }) => {
   // Load Dashboard Data
   useEffect(() => {
     loadDashboard();
-    // Refresh notifications every 30 seconds
-    const interval = setInterval(loadNotifications, 30000);
-    return () => clearInterval(interval);
   }, []);
 
   const loadDashboard = async () => {
     try {
       setLoading(true);
-      const headers = { Authorization: `Bearer ${directorToken}` };
-
-      const [summaryRes, notificationsRes, studentsRes, invoicesRes, paymentsRes] = await Promise.all([
-        axios.get(`${API_URL}/director/summary`, { headers }),
-        axios.get(`${API_URL}/director/notifications`, { headers }),
-        axios.get(`${API_URL}/director/students`, { headers }),
-        axios.get(`${API_URL}/director/invoices`, { headers }),
-        axios.get(`${API_URL}/director/payments`, { headers })
-      ]);
-
-      setSummary(summaryRes.data);
-      setNotifications(notificationsRes.data);
-      setStudents(studentsRes.data);
-      setInvoices(invoicesRes.data);
-      setPayments(paymentsRes.data);
+      const studentsData = await fetchStudents();
+      
+      // Calculate summary stats
+      const totalAmount = studentsData.reduce((sum, s) => sum + s.totalAmount, 0);
+      const totalCollected = studentsData.reduce((sum, s) => sum + s.paidAmount, 0);
+      const outstandingBalance = totalAmount - totalCollected;
+      
+      setSummary({
+        totalStudents: studentsData.length,
+        totalAmount,
+        totalCollected,
+        outstandingBalance,
+        paymentPercentage: totalAmount > 0 ? Math.round((totalCollected / totalAmount) * 100) : 0
+      });
+      
+      // Map invoices from students data
+      const allInvoices = studentsData.flatMap(s => 
+        s.invoices.map(inv => ({
+          ...inv,
+          student: { firstName: s.firstName, lastName: s.lastName }
+        }))
+      );
+      
+      setStudents(studentsData);
+      setInvoices(allInvoices);
+      setPayments(allInvoices.filter(inv => inv.status === 'Paid'));
       setError(null);
     } catch (err) {
       console.error('Error loading dashboard:', err);
@@ -52,18 +57,9 @@ const DirectorDashboard = ({ onLogout }) => {
     }
   };
 
-  const loadNotifications = async () => {
-    try {
-      const headers = { Authorization: `Bearer ${directorToken}` };
-      const res = await axios.get(`${API_URL}/director/notifications`, { headers });
-      setNotifications(res.data);
-    } catch (err) {
-      console.error('Error loading notifications:', err);
-    }
-  };
-
   const handleLogoutClick = () => {
-    if (onLogout) onLogout();
+    logout();
+    onLogout();
   };
 
   if (loading) {

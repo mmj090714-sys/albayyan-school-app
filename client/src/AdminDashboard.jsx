@@ -95,14 +95,15 @@ const AdminDashboard = ({ onLogout }) => {
       // Calculate stats from students
       const totalStudents = studentsData.length;
       const totalAmount = studentsData.reduce((sum, s) => sum + s.totalAmount, 0);
-      const paidAmount = studentsData.reduce((sum, s) => sum + s.paidAmount, 0);
+      const totalCollected = studentsData.reduce((sum, s) => sum + s.paidAmount, 0);
+      const outstandingBalance = totalAmount - totalCollected;
       
       setStats({
         totalStudents,
-        totalAmount,
-        paidAmount,
-        pendingAmount: totalAmount - paidAmount,
-        paymentPercentage: totalAmount > 0 ? Math.round((paidAmount / totalAmount) * 100) : 0
+        newStudents: 0,
+        totalCollected: totalCollected || 0,
+        outstandingBalance: outstandingBalance || 0,
+        paymentPercentage: totalAmount > 0 ? Math.round((totalCollected / totalAmount) * 100) : 0
       });
     } catch (error) {
       console.error('Error loading dashboard:', error);
