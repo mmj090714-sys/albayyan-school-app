@@ -24,7 +24,7 @@ import {
   fetchPayments
 } from './utils/supabaseClient';
 import { sendPaymentReceivedNotification } from './utils/notificationService';
-import { generateInvoicePDF, generatePaymentReceiptPDF, generateDebtorsReportPDF } from './utils/pdfService';
+import { generateInvoicePDF, generatePaymentReceiptPDF, generateDebtorsReportPDF, generateAnalyticsReportPDF, generateFinancialSummaryPDF } from './utils/pdfService';
 
 // School class constants
 const PRIMARY_CLASSES = ['Creche', 'Reception 1', 'Reception 2', 'Nursery 1', 'Nursery 2', 'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4'];
@@ -657,10 +657,64 @@ const AdminDashboard = ({ onLogout }) => {
               <p className="stat-number">{stats.activeSessions}/{stats.totalSessions}</p>
             </div>
           </div>
+          
+          {/* Quick Export Section */}
+          <div style={{ marginTop: '30px', padding: '20px', backgroundColor: '#f0f7ff', borderRadius: '8px', borderLeft: '4px solid #3b82f6' }}>
+            <h3 style={{ marginTop: 0, marginBottom: '15px' }}>📄 Quick Export Reports</h3>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              <button 
+                onClick={() => generateFinancialSummaryPDF(invoices, payments, `All Invoices & Payments`)}
+                style={{ padding: '10px 15px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}
+                title="Export financial summary as PDF"
+              >
+                📊 Financial Summary
+              </button>
+              <button 
+                onClick={() => {
+                  if (invoices.length === 0) {
+                    alert('No invoices to export');
+                    return;
+                  }
+                  generateAnalyticsReportPDF({
+                    totalInvoices: stats.totalInvoices,
+                    totalCollected: stats.totalCollected,
+                    outstandingBalance: stats.outstandingBalance,
+                    collectionRate: Math.round((stats.totalCollected / (stats.totalCollected + stats.outstandingBalance)) * 100),
+                    bankDistribution: payments.reduce((acc, pay) => {
+                      const bank = acc.find(b => b.name === pay.bankName);
+                      if (bank) {
+                        bank.amount += pay.amountPaid;
+                      } else {
+                        acc.push({ name: pay.bankName || 'Unknown', amount: pay.amountPaid });
+                      }
+                      return acc;
+                    }, []).map(b => ({ ...b, percentage: (b.amount / stats.totalCollected * 100) }))
+                  }, 'Current Period');
+                }}
+                style={{ padding: '10px 15px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}
+                title="Export analytics and insights"
+              >
+                📈 Analytics Report
+              </button>
+              <button 
+                onClick={() => {
+                  const debtors = invoices.filter(inv => inv.balanceDue > 0);
+                  if (debtors.length === 0) {
+                    alert('No debtors to report');
+                    return;
+                  }
+                  generateDebtorsReportPDF(debtors, 'Admin');
+                }}
+                style={{ padding: '10px 15px', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}
+                title="Export debtors list"
+              >
+                🔴 Debtors Report
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
-      {/* SESSIONS & TERMS TAB */}
       {activeTab === 'sessions' && (
         <div className="tab-content">
           <h2>📅 Sessions & Terms Management</h2>
@@ -1357,6 +1411,31 @@ const AdminDashboard = ({ onLogout }) => {
       {activeTab === 'payments' && (
         <div className="tab-content">
           <h2>💳 Payment Management</h2>
+          
+          {/* Export Buttons */}
+          <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', padding: '10px', backgroundColor: '#f9f9f9', borderRadius: '8px' }}>
+            <button 
+              onClick={() => generateFinancialSummaryPDF(invoices, payments, `All Invoices & Payments`)}
+              style={{ padding: '10px 15px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}
+              title="Export financial summary as PDF"
+            >
+              📊 Export Financial Summary
+            </button>
+            <button 
+              onClick={() => {
+                if (payments.length === 0) {
+                  alert('No payments to export');
+                  return;
+                }
+                generatePaymentReceiptPDF(payments[0], payments[0].invoice.student, payments[0].invoice);
+              }}
+              style={{ padding: '10px 15px', backgroundColor: '#8b5cf6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}
+              title="Download all payments summary"
+            >
+              📋 Export Payments Report
+            </button>
+          </div>
+          
           <form className="form" onSubmit={handleRecordPayment}>
             <h3>➕ Record Payment</h3>
             <div className="form-row">

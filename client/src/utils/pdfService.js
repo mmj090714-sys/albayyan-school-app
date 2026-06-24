@@ -403,9 +403,120 @@ export const generateAnalyticsReportPDF = (analyticsData, period = 'monthly') =>
   doc.save(`Analytics-Report-${period}-${new Date().getTime()}.pdf`)
 }
 
+/**
+ * Generate financial summary report PDF
+ * @param {array} invoices - All invoices
+ * @param {array} payments - All payments
+ * @param {string} reportPeriod - Report period description
+ */
+export const generateFinancialSummaryPDF = (invoices = [], payments = [], reportPeriod = 'Current') => {
+  const doc = new jsPDF('l', 'mm', 'a4') // Landscape
+  
+  // Header
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(18)
+  doc.text('ALBAYYAN INTERNATIONAL SCHOOL', 148, 15, { align: 'center' })
+  
+  doc.setFontSize(11)
+  doc.setFont('helvetica', 'normal')
+  doc.text('FINANCIAL SUMMARY REPORT', 148, 23, { align: 'center' })
+  doc.line(15, 27, 280, 27)
+  
+  // Report info
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(9)
+  doc.text(`Period: ${reportPeriod}`, 15, 35)
+  doc.text(`Generated: ${new Date().toLocaleDateString()}`, 15, 41)
+  
+  // Calculate totals
+  const totalInvoiced = invoices.reduce((sum, inv) => sum + (parseFloat(inv.amount) || 0), 0)
+  const totalPaid = payments.reduce((sum, pay) => sum + (parseFloat(pay.amount_paid) || 0), 0)
+  const outstanding = totalInvoiced - totalPaid
+  const collectionRate = totalInvoiced > 0 ? ((totalPaid / totalInvoiced) * 100).toFixed(2) : 0
+  
+  // Summary metrics
+  const summaryData = [
+    ['Metric', 'Value'],
+    ['Total Invoices', invoices.length.toString()],
+    ['Total Students', new Set(invoices.map(inv => inv.student_id)).size.toString()],
+    ['Total Amount Invoiced', `₦${totalInvoiced.toLocaleString('en-NG', { maximumFractionDigits: 2 })}`],
+    ['Total Amount Paid', `₦${totalPaid.toLocaleString('en-NG', { maximumFractionDigits: 2 })}`],
+    ['Outstanding Balance', `₦${outstanding.toLocaleString('en-NG', { maximumFractionDigits: 2 })}`],
+    ['Collection Rate', `${collectionRate}%`]
+  ]
+  
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(11)
+  doc.text('FINANCIAL SUMMARY', 15, 50)
+  
+  doc.autoTable({
+    startY: 55,
+    head: [summaryData[0]],
+    body: summaryData.slice(1),
+    theme: 'grid',
+    headStyles: {
+      fillColor: [37, 99, 235],
+      textColor: [255, 255, 255],
+      fontStyle: 'bold'
+    },
+    bodyStyles: {
+      textColor: [31, 41, 55]
+    },
+    columnStyles: {
+      1: { halign: 'right' }
+    }
+  })
+  
+  // Payment status breakdown
+  const paidInvoices = invoices.filter(inv => inv.status === 'Paid').length
+  const partialInvoices = invoices.filter(inv => inv.status === 'Partial').length
+  const unpaidInvoices = invoices.filter(inv => inv.status === 'Pending' || inv.status === 'Unpaid').length
+  
+  const statusTableY = doc.lastAutoTable.finalY + 15
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(11)
+  doc.text('PAYMENT STATUS BREAKDOWN', 15, statusTableY)
+  
+  const statusData = [
+    ['Status', 'Count', 'Percentage'],
+    ['Fully Paid', paidInvoices.toString(), `${((paidInvoices / invoices.length) * 100).toFixed(1)}%`],
+    ['Partially Paid', partialInvoices.toString(), `${((partialInvoices / invoices.length) * 100).toFixed(1)}%`],
+    ['Unpaid', unpaidInvoices.toString(), `${((unpaidInvoices / invoices.length) * 100).toFixed(1)}%`]
+  ]
+  
+  doc.autoTable({
+    startY: statusTableY + 5,
+    head: [statusData[0]],
+    body: statusData.slice(1),
+    theme: 'grid',
+    headStyles: {
+      fillColor: [124, 58, 237],
+      textColor: [255, 255, 255],
+      fontStyle: 'bold'
+    },
+    bodyStyles: {
+      textColor: [31, 41, 55]
+    },
+    columnStyles: {
+      1: { halign: 'center' },
+      2: { halign: 'right' }
+    }
+  })
+  
+  // Footer
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(8)
+  doc.line(15, 190, 280, 190)
+  doc.text('Confidential - Financial Report for Administrative Use Only', 148, 195, { align: 'center' })
+  
+  // Download
+  doc.save(`FinancialSummary-${new Date().getTime()}.pdf`)
+}
+
 export default {
   generateInvoicePDF,
   generatePaymentReceiptPDF,
   generateDebtorsReportPDF,
-  generateAnalyticsReportPDF
+  generateAnalyticsReportPDF,
+  generateFinancialSummaryPDF
 }

@@ -4,6 +4,7 @@ import { Chart as ChartJS, ArcElement, CategoryScale, LinearScale, BarElement, T
 import SchoolHeader from './SchoolHeader';
 import './DirectorDashboard.css';
 import { fetchStudents, logout, getBankAnalytics } from './utils/supabaseClient';
+import { generateAnalyticsReportPDF, generateFinancialSummaryPDF, generateDebtorsReportPDF } from './utils/pdfService';
 
 ChartJS.register(ArcElement, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
@@ -495,6 +496,61 @@ const DirectorDashboard = ({ onLogout }) => {
                   </tr>
                 </tbody>
               </table>
+            </div>
+
+            {/* EXPORT SECTION */}
+            <div style={{ 
+              marginTop: '30px',
+              padding: '20px', 
+              backgroundColor: '#f0f7ff', 
+              borderRadius: '8px',
+              borderLeft: '4px solid #3b82f6'
+            }}>
+              <h3 style={{ marginTop: 0, marginBottom: '15px' }}>📄 Export Reports</h3>
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                <button 
+                  onClick={() => {
+                    generateAnalyticsReportPDF({
+                      totalInvoices: bankAnalytics.totalInvoices,
+                      totalCollected: bankAnalytics.totalCollected,
+                      outstandingBalance: bankAnalytics.totalExpected - bankAnalytics.totalCollected,
+                      collectionRate: Math.round((bankAnalytics.totalCollected / bankAnalytics.totalExpected) * 100),
+                      bankDistribution: Object.entries(bankAnalytics.bankData).map(([bank, data]) => ({
+                        name: bank,
+                        amount: data.amount,
+                        percentage: parseFloat(data.percentage)
+                      }))
+                    }, 'Current Period');
+                  }}
+                  style={{ padding: '10px 15px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}
+                  title="Export analytics and insights"
+                >
+                  📈 Analytics Report
+                </button>
+                <button 
+                  onClick={() => {
+                    generateFinancialSummaryPDF(invoices, payments, `All Invoices & Payments`);
+                  }}
+                  style={{ padding: '10px 15px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}
+                  title="Export financial summary as PDF"
+                >
+                  📊 Financial Summary
+                </button>
+                <button 
+                  onClick={() => {
+                    const debtors = invoices.filter(inv => inv.balanceDue > 0);
+                    if (debtors.length === 0) {
+                      alert('No debtors to report');
+                      return;
+                    }
+                    generateDebtorsReportPDF(debtors, 'Director');
+                  }}
+                  style={{ padding: '10px 15px', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}
+                  title="Export debtors list"
+                >
+                  🔴 Debtors Report
+                </button>
+              </div>
             </div>
           </div>
         )}
