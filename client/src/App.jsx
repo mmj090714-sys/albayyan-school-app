@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
 import AdminDashboard from './AdminDashboard';
 import DirectorDashboard from './DirectorDashboard';
+import StudentPortal from './StudentPortal';
 import AdminLogin from './AdminLogin';
 import DirectorLogin from './DirectorLogin';
+import StudentLogin from './StudentLogin';
 import SchoolHeader from './SchoolHeader';
 import './App.css';
 
 export default function App() {
   const [currentView, setCurrentView] = useState('home');
+  const [studentData, setStudentData] = useState(null);
 
   const handleAdminLoginSuccess = () => {
     setCurrentView('admin');
@@ -17,10 +20,18 @@ export default function App() {
     setCurrentView('director');
   };
 
+  const handleStudentLoginSuccess = (student) => {
+    setStudentData(student);
+    setCurrentView('student');
+  };
+
   const handleLogout = () => {
     localStorage.removeItem('adminToken');
     localStorage.removeItem('directorToken');
+    localStorage.removeItem('studentToken');
+    localStorage.removeItem('studentId');
     localStorage.removeItem('userRole');
+    setStudentData(null);
     setCurrentView('home');
   };
 
@@ -34,6 +45,26 @@ export default function App() {
       <AdminLogin 
         onLoginSuccess={handleAdminLoginSuccess}
         onBackHome={handleBackHome}
+      />
+    );
+  }
+
+  // Student Login View
+  if (currentView === 'studentLogin') {
+    return (
+      <StudentLogin 
+        onLoginSuccess={handleStudentLoginSuccess}
+        onBackHome={handleBackHome}
+      />
+    );
+  }
+
+  // Student Portal View
+  if (currentView === 'student' && studentData) {
+    return (
+      <StudentPortal 
+        student={studentData} 
+        onLogout={handleLogout} 
       />
     );
   }
@@ -97,6 +128,17 @@ export default function App() {
           <p>Supervise student registrations and payment records with real-time insights</p>
           <button onClick={() => setCurrentView('directorLogin')} className="portal-button">
             <i className="fas fa-eye"></i>Access Director Portal
+          </button>
+        </div>
+
+        <div className="portal-card student-portal">
+          <div className="portal-icon">
+            <i className="fas fa-user-graduate"></i>
+          </div>
+          <h2>Student Portal</h2>
+          <p>View your invoices, check payment status, and download payment receipts</p>
+          <button onClick={() => setCurrentView('studentLogin')} className="portal-button">
+            <i className="fas fa-sign-in-alt"></i>Access Student Portal
           </button>
         </div>
       </div>
