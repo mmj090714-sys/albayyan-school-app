@@ -1,10 +1,8 @@
 const functions = require('firebase-functions');
 const express = require('express');
 const cors = require('cors');
-const { PrismaClient } = require('@prisma/client');
 const jwt = require('jsonwebtoken');
 
-const prisma = new PrismaClient();
 const app = express();
 
 // Middleware
@@ -14,20 +12,48 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Authentication middleware for admin routes
-const adminAuth = (req, res, next) => {
-  const token = req.headers.authorization?.split(' ')[1];
-  const jwtSecret = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production-min-32-chars';
-  
-  if (!token) {
-    return res.status(401).json({ error: "Unauthorized - No token provided" });
+const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production-min-32-chars';
+
+// Mock data storage
+let mockStudents = [
+  {
+    id: 1,
+    admissionNumber: 'ALB001',
+    firstName: 'Ahmed',
+    lastName: 'Al-Mansouri',
+    email: 'ahmed@example.com',
+    phone: '+971123456',
+    level: 'Secondary',
+    busUser: false,
+    invoices: [
+      { id: 1, term: 'Term 1', amount: 2500, status: 'Paid', dueDate: '2026-02-01' },
+      { id: 2, term: 'Term 2', amount: 2500, status: 'Pending', dueDate: '2026-05-01' }
+    ]
+  },
+  {
+    id: 2,
+    admissionNumber: 'ALB002',
+    firstName: 'Fatima',
+    lastName: 'Al-Noor',
+    email: 'fatima@example.com',
+    phone: '+971234567',
+    level: 'Primary',
+    busUser: true,
+    invoices: [
+      { id: 3, term: 'Term 1', amount: 2250, status: 'Paid', dueDate: '2026-02-01' },
+      { id: 4, term: 'Term 2', amount: 2250, status: 'Paid', dueDate: '2026-05-01' }
+    ]
   }
-  
+];
+
+// Authentication middleware
+const authenticate = (req, res, next) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) {
+    return res.status(401).json({ error: "Unauthorized - No token" });
+  }
   try {
-    const decoded = jwt.verify(token, jwtSecret);
-    if (decoded.role !== 'admin') {
-      return res.status(403).json({ error: "Forbidden - Admin access required" });
-    }
+    const decoded = jwt.verify(token, JWT_SECRET);
     req.user = decoded;
     next();
   } catch (error) {
@@ -35,182 +61,148 @@ const adminAuth = (req, res, next) => {
   }
 };
 
-// Authentication middleware for director routes
-const directorAuth = (req, res, next) => {
-  const token = req.headers.authorization?.split(' ')[1];
-  const jwtSecret = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production-min-32-chars';
-  
-  if (!token) {
-    return res.status(401).json({ error: "Unauthorized - No token provided" });
+// Admin auth check
+const isAdmin = (req, res, next) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: "Admin access required" });
   }
-  
-  try {
-    const decoded = jwt.verify(token, jwtSecret);
-    if (decoded.role !== 'director') {
-      return res.status(403).json({ error: "Forbidden - Director access required" });
-    }
-    req.user = decoded;
-    next();
-  } catch (error) {
-    res.status(401).json({ error: "Unauthorized - Invalid token" });
+  next();
+};
+
+// Director auth check
+const isDirector = (req, res, next) => {
+  if (req.user.role !== 'director') {
+    return res.status(403).json({ error: "Director access required" });
   }
+  next();
 };
 
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', message: 'API is running' });
+  res.json({ status: 'OK', message: 'Albayyan School API is running' });
 });
 
-// Auth endpoints
-app.post('/api/auth/admin/login', async (req, res) => {
+// Admin login
+app.post('/api/auth/admin/login', (req, res) => {
   const { username, password } = req.body;
-  const jwtSecret = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production-min-32-chars';
+  const adminUser = process.env.ADMIN_USERNAME || 'admin';
+  const adminPass = process.env.ADMIN_PASSWORD || 'ChangeMe@123Secure';
   
-  if (username === process.env.ADMIN_USERNAME && password === process.env.ADMIN_PASSWORD) {
-    const token = jwt.sign({ username, role: 'admin' }, jwtSecret, { expiresIn: '24h' });
-    return res.json({ token, message: 'Admin login successful' });
+  if (username === adminUser && password === adminPass) {
+    const token = jwt.sign(
+      { username, role: 'admin' },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+    return res.json({ token, role: 'admin', username });
   }
   res.status(401).json({ error: 'Invalid credentials' });
 });
 
-app.post('/api/auth/director/login', async (req, res) => {
+// Director login
+app.post('/api/auth/director/login', (req, res) => {
   const { username, password } = req.body;
-  const jwtSecret = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production-min-32-chars';
+  const directorUser = process.env.DIRECTOR_USERNAME || 'director';
+  const directorPass = process.env.DIRECTOR_PASSWORD || 'ChangeMe@456Secure';
   
-  if (username === process.env.DIRECTOR_USERNAME && password === process.env.DIRECTOR_PASSWORD) {
-    const token = jwt.sign({ username, role: 'director' }, jwtSecret, { expiresIn: '24h' });
-    return res.json({ token, message: 'Director login successful' });
+  if (username === directorUser && password === directorPass) {
+    const token = jwt.sign(
+      { username, role: 'director' },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+    return res.json({ token, role: 'director', username });
   }
   res.status(401).json({ error: 'Invalid credentials' });
 });
 
-// Student endpoints (Admin only)
-app.get('/api/admin/students', adminAuth, async (req, res) => {
-  try {
-    const students = await prisma.students.findMany({
-      include: { invoices: true }
-    });
-    res.json(students);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+// Get all students (admin only)
+app.get('/api/admin/students', authenticate, isAdmin, (req, res) => {
+  res.json(mockStudents);
 });
 
-app.post('/api/admin/students', adminAuth, async (req, res) => {
-  try {
-    const { firstName, lastName, email, phone, level, busUser } = req.body;
-    
-    const lastStudent = await prisma.students.findFirst({
-      orderBy: { id: 'desc' }
-    });
-    
-    const lastNumber = lastStudent ? parseInt(lastStudent.admissionNumber.replace('ALB', '')) : 0;
-    const admissionNumber = `ALB${String(lastNumber + 1).padStart(3, '0')}`;
-    
-    const student = await prisma.students.create({
-      data: {
-        firstName,
-        lastName,
-        email,
-        phone,
-        level,
-        busUser: busUser || false,
-        admissionNumber
-      }
-    });
-    
-    res.status(201).json(student);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+// Create new student (admin only)
+app.post('/api/admin/students', authenticate, isAdmin, (req, res) => {
+  const { firstName, lastName, email, phone, level, busUser } = req.body;
+  
+  if (!firstName || !lastName) {
+    return res.status(400).json({ error: 'firstName and lastName are required' });
   }
+  
+  const lastNumber = mockStudents.length > 0 
+    ? parseInt(mockStudents[mockStudents.length - 1].admissionNumber.replace('ALB', ''))
+    : 0;
+  
+  const newStudent = {
+    id: mockStudents.length + 1,
+    admissionNumber: `ALB${String(lastNumber + 1).padStart(3, '0')}`,
+    firstName,
+    lastName,
+    email: email || '',
+    phone: phone || '',
+    level: level || 'Primary',
+    busUser: busUser || false,
+    invoices: []
+  };
+  
+  mockStudents.push(newStudent);
+  res.status(201).json(newStudent);
 });
 
-// Bulk import endpoint
-app.post('/api/admin/students/bulk/import', adminAuth, async (req, res) => {
-  try {
-    const { students } = req.body;
-    
-    if (!Array.isArray(students) || students.length === 0) {
-      return res.status(400).json({ error: 'Students array is required and must not be empty' });
-    }
-    
-    const results = {
-      successful: 0,
-      failed: 0,
-      errors: [],
-      admissionNumbers: []
-    };
-    
-    for (let i = 0; i < students.length; i++) {
-      const { firstName, lastName, email, phone, level, busUser } = students[i];
+// Bulk import students
+app.post('/api/admin/students/bulk/import', authenticate, isAdmin, (req, res) => {
+  const { students } = req.body;
+  
+  if (!Array.isArray(students)) {
+    return res.status(400).json({ error: 'Students must be an array' });
+  }
+  
+  const results = { successful: 0, failed: 0, errors: [], admissionNumbers: [] };
+  
+  students.forEach((student, index) => {
+    if (!student.firstName || !student.lastName) {
+      results.failed++;
+      results.errors.push({ row: index + 1, error: 'Missing firstName or lastName' });
+    } else {
+      const lastNumber = mockStudents.length > 0 
+        ? parseInt(mockStudents[mockStudents.length - 1].admissionNumber.replace('ALB', ''))
+        : 0;
       
-      // Validate required fields
-      if (!firstName || !lastName) {
-        results.failed++;
-        results.errors.push({
-          row: i + 1,
-          message: 'firstName and lastName are required'
-        });
-        continue;
-      }
+      const newStudent = {
+        id: mockStudents.length + 1,
+        admissionNumber: `ALB${String(lastNumber + 1).padStart(3, '0')}`,
+        firstName: student.firstName,
+        lastName: student.lastName,
+        email: student.email || '',
+        phone: student.phone || '',
+        level: student.level || 'Primary',
+        busUser: student.busUser || false,
+        invoices: []
+      };
       
-      try {
-        // Generate admission number
-        const lastStudent = await prisma.students.findFirst({
-          orderBy: { id: 'desc' }
-        });
-        
-        const lastNumber = lastStudent ? parseInt(lastStudent.admissionNumber.replace('ALB', '')) : 0;
-        const admissionNumber = `ALB${String(lastNumber + 1).padStart(3, '0')}`;
-        
-        // Create student
-        await prisma.students.create({
-          data: {
-            firstName,
-            lastName,
-            email: email || null,
-            phone: phone || null,
-            level: level || 'Primary',
-            busUser: busUser || false,
-            admissionNumber
-          }
-        });
-        
-        results.successful++;
-        results.admissionNumbers.push(admissionNumber);
-      } catch (error) {
-        results.failed++;
-        results.errors.push({
-          row: i + 1,
-          message: error.message
-        });
-      }
+      mockStudents.push(newStudent);
+      results.successful++;
+      results.admissionNumbers.push(newStudent.admissionNumber);
     }
-    
-    res.json(results);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+  });
+  
+  res.json(results);
 });
 
-// Director endpoints (Read-only)
-app.get('/api/director/summary', directorAuth, async (req, res) => {
-  try {
-    const students = await prisma.students.findMany();
-    const primaryCount = students.filter(s => s.level === 'Primary').length;
-    const secondaryCount = students.filter(s => s.level === 'Secondary').length;
-    const boardersCount = students.filter(s => s.busUser === true).length;
-    
-    res.json({
-      totalStudents: students.length,
-      primaryStudents: primaryCount,
-      secondaryStudents: secondaryCount,
-      boarders: boardersCount,
-      students
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+// Director summary
+app.get('/api/director/summary', authenticate, isDirector, (req, res) => {
+  const totalStudents = mockStudents.length;
+  const primaryCount = mockStudents.filter(s => s.level === 'Primary').length;
+  const secondaryCount = mockStudents.filter(s => s.level === 'Secondary').length;
+  const boardersCount = mockStudents.filter(s => s.busUser === true).length;
+  
+  res.json({
+    totalStudents,
+    primaryStudents: primaryCount,
+    secondaryStudents: secondaryCount,
+    boarders: boardersCount,
+    students: mockStudents
+  });
 });
 
 // Error handling middleware
