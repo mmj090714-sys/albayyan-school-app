@@ -113,6 +113,25 @@ const AdminDashboard = ({ onLogout }) => {
       const studentsData = await fetchStudents();
       setStudents(studentsData);
       
+      // Extract invoices from students data
+      const allInvoices = studentsData.flatMap(s => 
+        s.invoices.map(inv => ({
+          ...inv,
+          student: { 
+            id: s.id,
+            firstName: s.firstName, 
+            lastName: s.lastName,
+            admissionNumber: s.admissionNumber
+          },
+          balanceDue: inv.amount - (inv.status === 'Paid' ? inv.amount : 0)
+        }))
+      );
+      setInvoices(allInvoices);
+      
+      // Fetch payments
+      const paymentsData = await fetchPayments();
+      setPayments(paymentsData || []);
+      
       // Calculate stats from students
       const totalStudents = studentsData.length;
       const totalAmount = studentsData.reduce((sum, s) => sum + s.totalAmount, 0);
@@ -122,9 +141,13 @@ const AdminDashboard = ({ onLogout }) => {
       setStats({
         totalStudents,
         newStudents: 0,
+        totalInvoices: allInvoices.length,
+        paidInvoices: allInvoices.filter(inv => inv.status === 'Paid').length,
         totalCollected: totalCollected || 0,
         outstandingBalance: outstandingBalance || 0,
-        paymentPercentage: totalAmount > 0 ? Math.round((totalCollected / totalAmount) * 100) : 0
+        paymentPercentage: totalAmount > 0 ? Math.round((totalCollected / totalAmount) * 100) : 0,
+        activeSessions: 1,
+        totalSessions: 1
       });
     } catch (error) {
       console.error('Error loading dashboard:', error);
