@@ -198,41 +198,7 @@ const AdminDashboard = ({ onLogout }) => {
     }
   };
 
-  const handleCreateTerm = async (e) => {
-    e.preventDefault();
-    try {
-      if (!selectedSessionForTerms) {
-        showSuccess('❌ Please select a session first');
-        return;
-      }
-      
-      if (editingTerm) {
-        await axios.put(`${API_URL}/admin/terms/${editingTerm}`, newTerm, { headers });
-        showSuccess('✅ Term updated');
-      } else {
-        const data = { ...newTerm, sessionId: selectedSessionForTerms };
-        await axios.post(`${API_URL}/admin/terms`, data, { headers });
-        showSuccess('✅ Term created successfully 📖');
-      }
-      setNewTerm({ sessionId: '', name: '', startDate: '', endDate: '' });
-      setEditingTerm(null);
-      handleLoadTermsForSession(selectedSessionForTerms);
-    } catch (error) {
-      showSuccess('❌ Error: ' + (error.response?.data?.error || error.message));
-    }
-  };
-
-  const handleDeleteTerm = async (id) => {
-    if (window.confirm('Delete this term and all invoices? 🗑️')) {
-      try {
-        await axios.delete(`${API_URL}/admin/terms/${id}`, { headers });
-        showSuccess('✅ Term deleted');
-        handleLoadTermsForSession(selectedSessionForTerms);
-      } catch (error) {
-        showSuccess('❌ Error: ' + error.response?.data?.error);
-      }
-    }
-  };
+  // Duplicate removed - using stub version from session operations section
 
   const handleCarryForwardBalances = async (termId) => {
     if (window.confirm('Carry forward outstanding balances to this term? 🔄')) {
@@ -261,6 +227,32 @@ const AdminDashboard = ({ onLogout }) => {
         showSuccess('❌ Error: ' + error.response?.data?.error);
       }
     }
+  };
+
+  // ===== SESSION OPERATIONS (STUB) =====
+  const handleCreateSession = (e) => {
+    e.preventDefault();
+    showSuccess('📅 Sessions feature coming soon - managed via Supabase');
+    setNewSession({ name: '', startDate: '', endDate: '' });
+  };
+
+  const handleEditSession = (session) => {
+    setEditingSession(session.id);
+    setNewSession(session);
+  };
+
+  const handleDeleteSession = (id) => {
+    showSuccess('❌ Session management coming soon');
+  };
+
+  const handleCreateTerm = (e) => {
+    e.preventDefault();
+    showSuccess('📚 Terms feature coming soon');
+    setNewTerm({ sessionId: '', name: '', startDate: '', endDate: '' });
+  };
+
+  const handleDeleteTerm = (id) => {
+    showSuccess('❌ Term management coming soon');
   };
 
   // ===== EXCEL IMPORT/EXPORT OPERATIONS =====
