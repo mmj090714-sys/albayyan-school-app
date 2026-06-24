@@ -6,25 +6,55 @@ const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_KEY || 'your-anon-key'
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 
-// Mock authentication - use localStorage to track login state
+// Database-backed authentication using Supabase users table
 export const loginAdmin = async (username, password) => {
+  // Validate against hardcoded credentials for now (Phase 2B will use Supabase Auth with hashed passwords)
   if (username === 'admin' && password === 'ChangeMe@123Secure') {
+    // Query users table to verify user exists and is active
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, username, role, is_active')
+      .eq('username', username)
+      .eq('role', 'admin')
+      .eq('is_active', true)
+      .single()
+    
+    if (error || !data) {
+      throw new Error('Admin user not found in database. Please seed users table.')
+    }
+    
     const token = 'admin-token-' + Date.now()
     localStorage.setItem('authToken', token)
     localStorage.setItem('userRole', 'admin')
     localStorage.setItem('username', username)
-    return { token, role: 'admin', username }
+    localStorage.setItem('userId', data.id)
+    return { token, role: 'admin', username, userId: data.id }
   }
   throw new Error('Invalid admin credentials')
 }
 
 export const loginDirector = async (username, password) => {
+  // Validate against hardcoded credentials for now (Phase 2B will use Supabase Auth with hashed passwords)
   if (username === 'director' && password === 'ChangeMe@456Secure') {
+    // Query users table to verify user exists and is active
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, username, role, is_active')
+      .eq('username', username)
+      .eq('role', 'director')
+      .eq('is_active', true)
+      .single()
+    
+    if (error || !data) {
+      throw new Error('Director user not found in database. Please seed users table.')
+    }
+    
     const token = 'director-token-' + Date.now()
     localStorage.setItem('authToken', token)
     localStorage.setItem('userRole', 'director')
     localStorage.setItem('username', username)
-    return { token, role: 'director', username }
+    localStorage.setItem('userId', data.id)
+    return { token, role: 'director', username, userId: data.id }
   }
   throw new Error('Invalid director credentials')
 }
@@ -33,6 +63,7 @@ export const logout = () => {
   localStorage.removeItem('authToken')
   localStorage.removeItem('userRole')
   localStorage.removeItem('username')
+  localStorage.removeItem('userId')
 }
 
 export const getAuthToken = () => {
@@ -41,6 +72,19 @@ export const getAuthToken = () => {
 
 export const getUserRole = () => {
   return localStorage.getItem('userRole')
+}
+
+export const getUserId = () => {
+  return localStorage.getItem('userId')
+}
+
+export const getCurrentUser = () => {
+  return {
+    username: localStorage.getItem('username'),
+    role: localStorage.getItem('userRole'),
+    userId: localStorage.getItem('userId'),
+    token: localStorage.getItem('authToken')
+  }
 }
 
 // Student operations
