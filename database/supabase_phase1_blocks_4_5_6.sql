@@ -5,9 +5,9 @@
 
 -- BLOCK 4: PAYMENTS TABLE
 CREATE TABLE IF NOT EXISTS payments (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  invoice_id UUID NOT NULL REFERENCES invoices(id) ON DELETE CASCADE,
-  student_id UUID REFERENCES students(id) ON DELETE SET NULL,
+  id BIGSERIAL PRIMARY KEY,
+  invoice_id BIGINT NOT NULL REFERENCES invoices(id) ON DELETE CASCADE,
+  student_id BIGINT REFERENCES students(id) ON DELETE SET NULL,
   amount_paid DECIMAL(15, 2) NOT NULL,
   payment_method VARCHAR(50) NOT NULL DEFAULT 'Bank Transfer',
   bank_name VARCHAR(100),
@@ -54,7 +54,7 @@ CREATE POLICY "payments_delete_policy" ON payments
 -- BLOCK 5: USERS TABLE
 -- ========================================
 CREATE TABLE IF NOT EXISTS users (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  id BIGSERIAL PRIMARY KEY,
   email VARCHAR(255) UNIQUE NOT NULL,
   username VARCHAR(100) UNIQUE,
   first_name VARCHAR(100),
@@ -99,8 +99,8 @@ CREATE POLICY "users_delete_policy" ON users
 -- BLOCK 6: AUDIT_LOGS TABLE
 -- ========================================
 CREATE TABLE IF NOT EXISTS audit_logs (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  id BIGSERIAL PRIMARY KEY,
+  user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
   action VARCHAR(100) NOT NULL,
   entity_type VARCHAR(100),
   entity_id VARCHAR(255),
