@@ -3,13 +3,8 @@ import cors from 'cors';
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import jwt from 'jsonwebtoken';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
 
-dotenv.config({ path: join(dirname(fileURLToPath(import.meta.url)), '.env') });
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+dotenv.config();
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -1040,17 +1035,5 @@ const verifySupabaseConnection = async () => {
     process.exit(1);
   }
 };
-
-const startServer = async () => {
-  await verifySupabaseConnection();
-  app.listen(PORT, () => console.log(`Albayyan Server running on port ${PORT}`));
-};
-
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  startServer().catch((err) => {
-    console.error('Server startup failed:', err);
-    process.exit(1);
-  });
-}
 
 export { app, verifySupabaseConnection };

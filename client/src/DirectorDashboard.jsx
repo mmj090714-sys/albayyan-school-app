@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { Pie, Bar } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
 import SchoolHeader from './SchoolHeader';
 import './DirectorDashboard.css';
-import { fetchStudents, logout, getBankAnalytics } from './utils/supabaseClient';
+import { getApiUrl, logout } from './utils/supabaseClient';
 import { generateAnalyticsReportPDF, generateFinancialSummaryPDF, generateDebtorsReportPDF } from './utils/pdfService';
 
 ChartJS.register(ArcElement, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
@@ -13,12 +14,18 @@ const DirectorDashboard = ({ onLogout }) => {
   const [invoices, setInvoices] = useState([]);
   const [payments, setPayments] = useState([]);
   const [summary, setSummary] = useState(null);
-  const [bankAnalytics, setBankAnalytics] = useState(null);
+  const [bankAnalytics, setBankAnalytics] = useState({ bankData: {}, termData: {}, totalExpected: 0, totalCollected: 0, totalInvoices: 0 });
+  const [notifications, setNotifications] = useState([]);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const directorToken = localStorage.getItem('directorToken');
+  const authToken = localStorage.getItem('authToken') || '';
+  const API_URL = getApiUrl();
+  const headers = {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${authToken}`
+  };
 
   // Load Dashboard Data
   useEffect(() => {
@@ -28,54 +35,26 @@ const DirectorDashboard = ({ onLogout }) => {
   const loadDashboard = async () => {
     try {
       setLoading(true);
-      const studentsData = await fetchStudents();
-      const analyticsData = await getBankAnalytics();
-      
-      // Calculate summary stats
-      const totalAmount = studentsData.reduce((sum, s) => sum + s.totalAmount, 0);
-      const totalCollected = studentsData.reduce((sum, s) => sum + s.paidAmount, 0);
-      const outstandingBalance = totalAmount - totalCollected;
-      
-      // Count students by type
-      const primaryStudents = studentsData.filter(s => s.level === 'Primary').length;
-      const secondaryStudents = studentsData.filter(s => s.level === 'Secondary').length;
-      const totalBoarders = studentsData.filter(s => s.boardingStatus).length;
-      const totalBusUsers = studentsData.filter(s => s.busUser).length;
-      
-      // Count invoices
-      const allInvoices = studentsData.flatMap(s => s.invoices);
-      const totalInvoices = allInvoices.length;
-      const totalPayments = allInvoices.filter(inv => inv.status === 'Paid').length;
-      
-      setSummary({
-        totalStudents: studentsData.length,
-        primaryStudents,
-        secondaryStudents,
-        totalBoarders,
-        totalBusUsers,
-        totalInvoices,
-        totalPayments,
-        recentPayments: totalPayments,
-        totalExpected: totalAmount || 0,
-        totalCollected: totalCollected || 0,
-        totalOutstanding: outstandingBalance || 0,
-        collectionRate: totalAmount > 0 ? Math.round((totalCollected / totalAmount) * 100) : 0
-      });
-      
-      // Set bank analytics
-      setBankAnalytics(analyticsData);
-      
-      // Map invoices from students data
-      const allInvoicesWithStudent = studentsData.flatMap(s => 
-        s.invoices.map(inv => ({
-          ...inv,
-          student: { firstName: s.firstName, lastName: s.lastName }
-        }))
-      );
-      
+      const [studentsRes, summaryRes, paymentsRes, invoicesRes, notificationsRes] = await Promise.all([
+        axios.get(`${API_URL}/director/students`, { headers }),
+        axios.get(`${API_URL}/director/summary`, { headers }),
+        axios.get(`${API_URL}/director/payments`, { headers }),
+        axios.get(`${API_URL}/director/invoices`, { headers }),
+        axios.get(`${API_URL}/director/notifications`, { headers })
+      ]);
+
+      const studentsData = studentsRes.data || [];
+      const summaryData = summaryRes.data || {};
+      const paymentsData = paymentsRes.data || [];
+      const invoicesData = invoicesRes.data || [];
+      const notificationsData = notificationsRes.data || [];
+
       setStudents(studentsData);
-      setInvoices(allInvoicesWithStudent);
-      setPayments(allInvoicesWithStudent.filter(inv => inv.status === 'Paid'));
+      setPayments(paymentsData);
+      setInvoices(invoicesData);
+      setNotifications(notificationsData);
+      setSummary(summaryData);
+      setBankAnalytics(summaryData.bankAnalytics || { bankData: {}, termData: {}, totalExpected: 0, totalCollected: 0, totalInvoices: 0 });
       setError(null);
     } catch (err) {
       console.error('Error loading dashboard:', err);

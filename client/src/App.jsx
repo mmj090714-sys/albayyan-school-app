@@ -20,7 +20,10 @@ export default function App() {
   const handleLogout = () => {
     localStorage.removeItem('adminToken');
     localStorage.removeItem('directorToken');
+    localStorage.removeItem('authToken');
     localStorage.removeItem('userRole');
+    localStorage.removeItem('username');
+    localStorage.removeItem('userId');
     setCurrentView('home');
   };
 

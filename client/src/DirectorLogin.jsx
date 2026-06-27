@@ -74,12 +74,6 @@ const DirectorLogin = ({ onLoginSuccess, onBackHome }) => {
             </button>
           </form>
 
-          <div className="demo-credentials">
-            <p><strong>Demo Credentials:</strong></p>
-            <p>Username: <code>director</code></p>
-            <p>Password: <code>Director@123</code></p>
-          </div>
-
           <button onClick={onBackHome} className="back-to-home-link">
             ← Back to Home
           </button>

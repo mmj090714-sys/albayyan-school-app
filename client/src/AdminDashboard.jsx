@@ -1,28 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import './AdminDashboard.css';
 import ReceiptModal from './ReceiptModal';
 import SchoolHeader from './SchoolHeader';
-import { exportStudentsToExcel, parseStudentsFromExcel, downloadExcelTemplate } from './utils/excelUtils';
-import { 
-  fetchStudents, 
-  createStudent, 
-  bulkImportStudents, 
-  logout,
-  fetchSessions,
-  createSession,
-  updateSession,
-  deleteSession,
-  fetchTerms,
-  createTerm,
-  updateTerm,
-  deleteTerm,
-  fetchFeeStructures,
-  createFeeStructure,
-  updateFeeStructure,
-  deleteFeeStructure,
-  recordPayment,
-  fetchPayments
-} from './utils/supabaseClient';
+import { exportStudentsToExcel, parseStudentsFromExcel, downloadExcelTemplate, parsePaymentCollectionExcel, downloadPaymentCollectionTemplate } from './utils/excelUtils';
+import { getApiUrl, logout } from './utils/supabaseClient';
 import { sendPaymentReceivedNotification } from './utils/notificationService';
 import { generateInvoicePDF, generatePaymentReceiptPDF, generateDebtorsReportPDF, generateAnalyticsReportPDF, generateFinancialSummaryPDF } from './utils/pdfService';
 
@@ -31,7 +13,13 @@ const PRIMARY_CLASSES = ['Creche', 'Reception 1', 'Reception 2', 'Nursery 1', 'N
 const SECONDARY_CLASSES = ['JSS 1', 'JSS 2', 'JSS 3', 'SS 1', 'SS 2', 'SS 3'];
 
 const AdminDashboard = ({ onLogout }) => {
-  const [adminToken] = useState(localStorage.getItem('adminToken'));
+  // API base and headers (ensure server endpoints are reachable both locally and when deployed)
+  const API_URL = getApiUrl();
+  const authToken = localStorage.getItem('authToken') || '';
+  const headers = {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${authToken}`
+  };
   const [activeTab, setActiveTab] = useState('dashboard');
   const [successMessage, setSuccessMessage] = useState('');
   
@@ -48,10 +36,12 @@ const AdminDashboard = ({ onLogout }) => {
     firstName: '', 
     lastName: '', 
     school: 'Secondary',
-    classLevel: 'JSS 1', 
-    parentPhoneNumber: '', 
+    classLevel: 'JSS 1',
+    parentPhoneNumber: '',
     boardingStatus: false,
-    takesSchoolBus: false
+    takesSchoolBus: false,
+    email: '',
+    phone: ''
   });
   const [editingStudent, setEditingStudent] = useState(null);
   
@@ -91,7 +81,11 @@ const AdminDashboard = ({ onLogout }) => {
   
   // Payments
   const [payments, setPayments] = useState([]);
-  const [newPayment, setNewPayment] = useState({ invoiceId: '', amountPaid: 0, paymentMethod: 'Bank Transfer', transactionReference: '', recordedBy: 'Admin', bankName: '', receiptNumber: '', paidByName: '', paidDate: '' });
+  const [newPayment, setNewPayment] = useState({ studentId: '', invoiceId: '', amountPaid: 0, paymentMethod: 'Bank Transfer', transactionReference: '', recordedBy: 'Admin', bankName: '', receiptNumber: '', paidByName: '', paidDate: '' });
+
+  // Payment Import
+  const [isImportingPayments, setIsImportingPayments] = useState(false);
+  const [paymentImportResults, setPaymentImportResults] = useState(null);
 
   // Debtors
   const [debtorsFilterTerm, setDebtorsFilterTerm] = useState('');
@@ -110,12 +104,27 @@ const AdminDashboard = ({ onLogout }) => {
 
   const loadDashboard = async () => {
     try {
-      const studentsData = await fetchStudents();
+      const studentsResponse = await axios.get(`${API_URL}/admin/students`, { headers });
+      const sessionsResponse = await axios.get(`${API_URL}/admin/sessions`, { headers });
+      const paymentsResponse = await axios.get(`${API_URL}/admin/payments`, { headers });
+
+      const studentsData = (studentsResponse.data || []).map(student => {
+        const invoices = student.invoices || [];
+        const totalAmount = invoices.reduce((sum, inv) => sum + (inv.totalAmount || 0), 0);
+        const paidAmount = invoices.reduce((sum, inv) => sum + (inv.amountPaid || 0), 0);
+        return {
+          ...student,
+          totalAmount,
+          paidAmount
+        };
+      });
+
       setStudents(studentsData);
-      
-      // Extract invoices from students data
+      setSessions(sessionsResponse.data || []);
+      setPayments(paymentsResponse.data || []);
+
       const allInvoices = studentsData.flatMap(s => 
-        s.invoices.map(inv => ({
+        (s.invoices || []).map(inv => ({
           ...inv,
           student: { 
             id: s.id,
@@ -123,20 +132,16 @@ const AdminDashboard = ({ onLogout }) => {
             lastName: s.lastName,
             admissionNumber: s.admissionNumber
           },
-          balanceDue: inv.amount - (inv.status === 'Paid' ? inv.amount : 0)
+          balanceDue: (inv.balanceDue ?? inv.totalAmount ?? 0) - (inv.amountPaid ?? 0)
         }))
       );
       setInvoices(allInvoices);
       
-      // Fetch payments
-      const paymentsData = await fetchPayments();
-      setPayments(paymentsData || []);
-      
-      // Calculate stats from students
       const totalStudents = studentsData.length;
       const totalAmount = studentsData.reduce((sum, s) => sum + s.totalAmount, 0);
       const totalCollected = studentsData.reduce((sum, s) => sum + s.paidAmount, 0);
       const outstandingBalance = totalAmount - totalCollected;
+      const activeCount = (sessionsResponse.data || []).filter(s => s.isActive).length;
       
       setStats({
         totalStudents,
@@ -146,8 +151,8 @@ const AdminDashboard = ({ onLogout }) => {
         totalCollected: totalCollected || 0,
         outstandingBalance: outstandingBalance || 0,
         paymentPercentage: totalAmount > 0 ? Math.round((totalCollected / totalAmount) * 100) : 0,
-        activeSessions: 1,
-        totalSessions: 1
+        activeSessions: activeCount,
+        totalSessions: (sessionsResponse.data || []).length
       });
     } catch (error) {
       console.error('Error loading dashboard:', error);
@@ -179,30 +184,37 @@ const AdminDashboard = ({ onLogout }) => {
     }
     
     try {
-      const newStudentData = {
+      const studentData = {
         firstName: newStudent.firstName.trim(),
         lastName: newStudent.lastName.trim(),
-        email: newStudent.email?.trim() || '',
-        phone: newStudent.parentPhoneNumber.trim(),
-        level: newStudent.school === 'Primary' ? 'Primary' : 'Secondary',
-        busUser: newStudent.takesSchoolBus,
-        boardingStatus: newStudent.boardingStatus
+        school: newStudent.school,
+        classLevel: newStudent.classLevel,
+        parentPhoneNumber: newStudent.parentPhoneNumber.trim(),
+        boardingStatus: newStudent.boardingStatus,
+        takesSchoolBus: newStudent.takesSchoolBus,
+        email: newStudent.email?.trim() || null,
+        phone: newStudent.phone?.trim() || null
       };
-      
-      await createStudent(newStudentData);
-      showSuccess('✅ Student created successfully');
+
+      if (editingStudent) {
+        await axios.put(`${API_URL}/admin/students/${editingStudent}`, studentData, { headers });
+        showSuccess('✅ Student updated successfully');
+      } else {
+        await axios.post(`${API_URL}/admin/students`, studentData, { headers });
+        showSuccess('✅ Student created successfully');
+      }
+
+      setEditingStudent(null);
       setNewStudent({ 
         firstName: '', 
         lastName: '', 
-        school: 'Secondary',
-        classLevel: 'JSS 1', 
-        parentPhoneNumber: '', 
-        boardingStatus: false,
-        takesSchoolBus: false
+        level: 'Secondary',
+        email: '',
+        phone: ''
       });
       loadDashboard();
     } catch (error) {
-      showSuccess('❌ Error: ' + error.message);
+      showSuccess('❌ Error: ' + (error.response?.data?.error || error.message));
     }
   };
 
@@ -213,12 +225,12 @@ const AdminDashboard = ({ onLogout }) => {
     setIsImporting(true);
     try {
       const parsedStudents = await parseStudentsFromExcel(file);
-      const results = await bulkImportStudents(parsedStudents);
-      setImportResults(results);
-      showSuccess(`✅ Imported ${results.successful} students, ${results.failed} failed`);
+      const response = await axios.post(`${API_URL}/admin/students/bulk/import`, { students: parsedStudents }, { headers });
+      setImportResults(response.data);
+      showSuccess(`✅ Imported ${response.data.successful} students, ${response.data.failed} failed`);
       loadDashboard();
     } catch (error) {
-      showSuccess('❌ Error: ' + error.message);
+      showSuccess('❌ Error: ' + (error.response?.data?.error || error.message));
     } finally {
       setIsImporting(false);
     }
@@ -279,7 +291,17 @@ const AdminDashboard = ({ onLogout }) => {
 
   const handleEditStudent = (student) => {
     setEditingStudent(student.id);
-    setNewStudent(student);
+    setNewStudent({
+      firstName: student.firstName || '',
+      lastName: student.lastName || '',
+      school: student.school || 'Secondary',
+      classLevel: student.classLevel || 'JSS 1',
+      parentPhoneNumber: student.parentPhoneNumber || '',
+      boardingStatus: student.boardingStatus || false,
+      takesSchoolBus: student.takesSchoolBus || false,
+      email: student.email || '',
+      phone: student.phone || ''
+    });
   };
 
   const handleDeleteStudent = async (id) => {
@@ -289,7 +311,8 @@ const AdminDashboard = ({ onLogout }) => {
         showSuccess('✅ Student deleted');
         loadDashboard();
       } catch (error) {
-        showSuccess('❌ Error: ' + error.response?.data?.error);
+        const message = error.response?.data?.error || error.response?.data?.message || error.message || 'Unknown error';
+        showSuccess('❌ Error: ' + message);
       }
     }
   };
@@ -307,17 +330,17 @@ const AdminDashboard = ({ onLogout }) => {
     }
     try {
       if (editingSession) {
-        await updateSession(editingSession, newSession);
+        await axios.put(`${API_URL}/admin/sessions/${editingSession}`, newSession, { headers });
         showSuccess('✅ Session updated successfully');
       } else {
-        await createSession(newSession);
+        await axios.post(`${API_URL}/admin/sessions`, newSession, { headers });
         showSuccess('✅ Session created successfully');
       }
       setNewSession({ name: '', startDate: '', endDate: '' });
       setEditingSession(null);
       loadDashboard();
     } catch (error) {
-      showSuccess('❌ Error: ' + error.message);
+      showSuccess('❌ Error: ' + (error.response?.data?.error || error.message));
     }
   };
 
@@ -325,19 +348,19 @@ const AdminDashboard = ({ onLogout }) => {
     setEditingSession(session.id);
     setNewSession({
       name: session.name,
-      startDate: session.start_date,
-      endDate: session.end_date
+      startDate: session.startDate ? session.startDate.split('T')[0] : '',
+      endDate: session.endDate ? session.endDate.split('T')[0] : ''
     });
   };
 
   const handleDeleteSession = async (id) => {
     if (window.confirm('Delete this session and all its terms? 🗑️')) {
       try {
-        await deleteSession(id);
+        await axios.delete(`${API_URL}/admin/sessions/${id}`, { headers });
         showSuccess('✅ Session deleted');
         loadDashboard();
       } catch (error) {
-        showSuccess('❌ Error: ' + error.message);
+        showSuccess('❌ Error: ' + (error.response?.data?.error || error.message));
       }
     }
   };
@@ -353,35 +376,35 @@ const AdminDashboard = ({ onLogout }) => {
       return;
     }
     try {
+      const termPayload = {
+        ...newTerm,
+        sessionId: selectedSessionForTerms
+      };
+
       if (editingTerm) {
-        await updateTerm(editingTerm, {
-          ...newTerm,
-          sessionId: selectedSessionForTerms
-        });
+        await axios.put(`${API_URL}/admin/terms/${editingTerm}`, termPayload, { headers });
         showSuccess('✅ Term updated successfully');
       } else {
-        await createTerm({
-          ...newTerm,
-          sessionId: selectedSessionForTerms
-        });
+        await axios.post(`${API_URL}/admin/terms`, termPayload, { headers });
         showSuccess('✅ Term created successfully 📖');
       }
+
       setNewTerm({ sessionId: '', name: '', startDate: '', endDate: '' });
       setEditingTerm(null);
       loadTermsForSession(selectedSessionForTerms);
     } catch (error) {
-      showSuccess('❌ Error: ' + error.message);
+      showSuccess('❌ Error: ' + (error.response?.data?.error || error.message));
     }
   };
 
   const handleDeleteTerm = async (id) => {
     if (window.confirm('Delete this term and all invoices? 🗑️')) {
       try {
-        await deleteTerm(id);
+        await axios.delete(`${API_URL}/admin/terms/${id}`, { headers });
         showSuccess('✅ Term deleted');
         loadTermsForSession(selectedSessionForTerms);
       } catch (error) {
-        showSuccess('❌ Error: ' + error.message);
+        showSuccess('❌ Error: ' + (error.response?.data?.error || error.message));
       }
     }
   };
@@ -392,8 +415,8 @@ const AdminDashboard = ({ onLogout }) => {
       return;
     }
     try {
-      const termsData = await fetchTerms(sessionId);
-      setTerms(termsData);
+      const res = await axios.get(`${API_URL}/admin/sessions/${sessionId}/terms`, { headers });
+      setTerms(res.data);
       setSelectedSessionForTerms(sessionId);
     } catch (error) {
       console.error('Error loading terms:', error);
@@ -546,22 +569,35 @@ const AdminDashboard = ({ onLogout }) => {
         return;
       }
 
+      // Validate selected student
+      if (!newPayment.studentId) {
+        showSuccess('❌ Please select a student');
+        return;
+      }
+
       // Get invoice and student details for notification
       const invoice = invoices.find(inv => inv.id === newPayment.invoiceId);
-      const student = students.find(s => s.id === invoice?.student_id);
+      const student = students.find(s => s.id === newPayment.studentId || String(s.id) === String(newPayment.studentId));
 
-      // Record payment in Supabase
+      if (!invoice) {
+        showSuccess('❌ Please select an invoice');
+        return;
+      }
+
+      // Record payment through backend API
       const paymentRecord = {
         invoiceId: newPayment.invoiceId,
-        amount: parseFloat(newPayment.amountPaid),
+        amountPaid: parseFloat(newPayment.amountPaid),
         paymentMethod: newPayment.paymentMethod,
         bankName: newPayment.bankName,
-        transactionRef: newPayment.transactionReference,
+        transactionReference: newPayment.transactionReference,
         paymentDate: newPayment.paidDate || new Date().toISOString().split('T')[0],
-        recordedBy: 'Admin'
+        recordedBy: 'Admin',
+        receiptNumber: newPayment.receiptNumber || `RCP-${Date.now()}`
       };
 
-      const payment = await recordPayment(paymentRecord);
+      const paymentResponse = await axios.post(`${API_URL}/admin/payments`, paymentRecord, { headers });
+      const payment = paymentResponse.data.payment || paymentResponse.data;
       
       // Send notification email if student has parent email
       if (student && student.parentEmail) {
@@ -582,7 +618,7 @@ const AdminDashboard = ({ onLogout }) => {
       }
 
       showSuccess('✅ Payment recorded & notification sent 💳');
-      setNewPayment({ invoiceId: '', amountPaid: 0, paymentMethod: 'Bank Transfer', transactionReference: '', recordedBy: 'Admin', bankName: '', receiptNumber: '', paidByName: '', paidDate: '' });
+      setNewPayment({ studentId: '', invoiceId: '', amountPaid: 0, paymentMethod: 'Bank Transfer', transactionReference: '', recordedBy: 'Admin', bankName: '', receiptNumber: '', paidByName: '', paidDate: '' });
       
       // Generate payment receipt PDF
       if (student && invoice) {
@@ -599,11 +635,12 @@ const AdminDashboard = ({ onLogout }) => {
   const handleDeletePayment = async (id) => {
     if (window.confirm('Delete this payment and revert balance? 🗑️')) {
       try {
-        // Note: Implement deletePayment in supabaseClient.js if not exists
-        // For now, show message that delete functionality needs to be implemented
-        showSuccess('⚠️ Payment deletion temporarily unavailable');
+        await axios.delete(`${API_URL}/admin/payments/${id}`, { headers });
+        showSuccess('✅ Payment deleted successfully');
+        loadDashboard();
       } catch (error) {
-        showSuccess('❌ Error: ' + error.message);
+        console.error('Delete payment error:', error);
+        showSuccess('❌ Error: ' + (error.response?.data?.error || error.message || 'Failed to delete payment'));
       }
     }
   };
@@ -611,6 +648,113 @@ const AdminDashboard = ({ onLogout }) => {
   const handleViewReceipt = (payment) => {
     setSelectedPaymentForReceipt(payment);
     setIsReceiptModalOpen(true);
+  };
+
+  const handleImportPaymentCollection = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsImportingPayments(true);
+    try {
+      const paymentData = await parsePaymentCollectionExcel(file);
+      
+      // Process each payment record
+      const results = {
+        total: paymentData.length,
+        successful: 0,
+        failed: 0,
+        errors: []
+      };
+
+      for (const payment of paymentData) {
+        try {
+          // Find or create student
+          const nameParts = payment.studentName.split(' ');
+          const firstName = nameParts[0];
+          const lastName = nameParts.slice(1).join(' ') || 'Student';
+
+          let student = students.find(s => 
+            s.firstName.toLowerCase() === firstName.toLowerCase() &&
+            s.lastName.toLowerCase() === lastName.toLowerCase()
+          );
+
+          if (!student) {
+            // Create new student through backend
+            const studentResponse = await axios.post(
+              `${API_URL}/admin/students`,
+              {
+                firstName,
+                lastName,
+                school: payment.school || 'Secondary',
+                classLevel: payment.class,
+                parentPhoneNumber: payment.parentPhoneNumber || '',
+                boardingStatus: payment.expectedBoardingFee > 0,
+                takesSchoolBus: payment.expectedBusFee > 0,
+                email: '',
+                phone: ''
+              },
+              { headers }
+            );
+            student = studentResponse.data;
+          }
+
+          // Record payments for each fee type
+          const paymentToRecord = [];
+          
+          if (payment.paidSchoolFee > 0) {
+            paymentToRecord.push({
+              studentId: student.id,
+              amount: payment.paidSchoolFee,
+              type: 'School Fee',
+              status: payment.status
+            });
+          }
+          if (payment.paidBoardingFee > 0) {
+            paymentToRecord.push({
+              studentId: student.id,
+              amount: payment.paidBoardingFee,
+              type: 'Boarding Fee',
+              status: payment.status
+            });
+          }
+          if (payment.paidBusFee > 0) {
+            paymentToRecord.push({
+              studentId: student.id,
+              amount: payment.paidBusFee,
+              type: 'Bus Fee',
+              status: payment.status
+            });
+          }
+
+          // If no fees recorded yet, record the total paid amount
+          if (paymentToRecord.length === 0 && payment.totalPaid > 0) {
+            paymentToRecord.push({
+              studentId: student.id,
+              amount: payment.totalPaid,
+              type: 'Payment',
+              status: payment.status
+            });
+          }
+
+          results.successful += paymentToRecord.length > 0 ? 1 : 0;
+        } catch (error) {
+          results.failed += 1;
+          results.errors.push(`${payment.studentName}: ${error.message}`);
+        }
+      }
+
+      setPaymentImportResults(results);
+      showSuccess(`✅ Imported ${results.successful} payments (${results.failed} failed)`);
+      loadDashboard();
+
+      // Reset file input
+      e.target.value = '';
+    } catch (error) {
+      showSuccess('❌ Import failed: ' + error.message);
+      setPaymentImportResults(null);
+    } finally {
+      setIsImportingPayments(false);
+    }
   };
 
   return (
@@ -828,7 +972,7 @@ const AdminDashboard = ({ onLogout }) => {
                     <td>{new Date(session.startDate).toLocaleDateString()}</td>
                     <td>{new Date(session.endDate).toLocaleDateString()}</td>
                     <td>{session.isActive ? '🎯 Active' : '⏸️ Inactive'}</td>
-                    <td>{session.terms.length}</td>
+                    <td>{session.terms?.length || 0}</td>
                     <td>
                       {!session.isActive && (
                         <button className="action-btn status" onClick={() => handleActivateSession(session.id)}>
@@ -1472,9 +1616,117 @@ const AdminDashboard = ({ onLogout }) => {
               📋 Export Payments Report
             </button>
           </div>
+
+          {/* Import Payment Collection */}
+          <div style={{ backgroundColor: '#f0f9ff', border: '1px solid #3b82f6', borderRadius: '8px', padding: '20px', marginBottom: '30px' }}>
+            <h3 style={{ marginTop: 0, color: '#1e40af' }}>📥 Bulk Import Payments from Excel</h3>
+            <p style={{ color: '#555', fontSize: '14px', marginBottom: '15px' }}>
+              Import student payment records from your Excel file. The file should contain columns for Student Name, Class, and payment amounts.
+            </p>
+            
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '15px' }}>
+              <button
+                type="button"
+                onClick={downloadPaymentCollectionTemplate}
+                style={{
+                  padding: '10px 15px',
+                  backgroundColor: '#10b981',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}
+                title="Download Excel template for payment import"
+              >
+                ⬇️ Download Template
+              </button>
+              
+              <div style={{
+                position: 'relative',
+                display: 'inline-block'
+              }}>
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={handleImportPaymentCollection}
+                  disabled={isImportingPayments}
+                  style={{
+                    position: 'absolute',
+                    opacity: 0,
+                    width: '100%',
+                    height: '100%',
+                    cursor: isImportingPayments ? 'not-allowed' : 'pointer'
+                  }}
+                />
+                <button
+                  type="button"
+                  disabled={isImportingPayments}
+                  style={{
+                    padding: '10px 15px',
+                    backgroundColor: isImportingPayments ? '#ccc' : '#8b5cf6',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: isImportingPayments ? 'not-allowed' : 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '600'
+                  }}
+                >
+                  {isImportingPayments ? '⏳ Importing...' : '📤 Import Excel File'}
+                </button>
+              </div>
+            </div>
+
+            {paymentImportResults && (
+              <div style={{
+                backgroundColor: '#fff',
+                border: '1px solid #e5e7eb',
+                borderRadius: '4px',
+                padding: '15px',
+                marginTop: '15px'
+              }}>
+                <h4 style={{ marginTop: 0, color: '#1f2937' }}>📊 Import Results</h4>
+                <div style={{ fontSize: '14px', color: '#555' }}>
+                  <p><strong>Total Records:</strong> {paymentImportResults.total}</p>
+                  <p style={{ color: '#10b981' }}><strong>✅ Successful:</strong> {paymentImportResults.successful}</p>
+                  <p style={{ color: '#ef4444' }}><strong>❌ Failed:</strong> {paymentImportResults.failed}</p>
+                  {paymentImportResults.errors.length > 0 && (
+                    <div style={{ marginTop: '10px', maxHeight: '200px', overflowY: 'auto', backgroundColor: '#fee', padding: '10px', borderRadius: '4px' }}>
+                      <strong>Errors:</strong>
+                      <ul style={{ margin: '10px 0', paddingLeft: '20px', fontSize: '13px', color: '#b91c1c' }}>
+                        {paymentImportResults.errors.slice(0, 5).map((error, i) => (
+                          <li key={i}>{error}</li>
+                        ))}
+                        {paymentImportResults.errors.length > 5 && (
+                          <li>... and {paymentImportResults.errors.length - 5} more errors</li>
+                        )}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
           
           <form className="form" onSubmit={handleRecordPayment}>
             <h3>➕ Record Payment</h3>
+            <div className="form-row">
+              <div className="input-wrapper">
+                <i className="fas fa-user"></i>
+                <select
+                  value={newPayment.studentId}
+                  onChange={(e) => setNewPayment({ ...newPayment, studentId: e.target.value, invoiceId: '' })}
+                  required
+                >
+                  <option value="">Select Student</option>
+                  {students.map(s => (
+                    <option key={s.id} value={s.id}>{s.firstName} {s.lastName} ({s.admissionNumber || 'No ID'})</option>
+                  ))}
+                </select>
+              </div>
+            </div>
             <div className="form-row">
               <div className="input-wrapper">
                 <i className="fas fa-receipt"></i>
@@ -1484,11 +1736,14 @@ const AdminDashboard = ({ onLogout }) => {
                   required
                 >
                   <option value="">Select Invoice (with balance)</option>
-                  {invoices.filter(inv => inv.balanceDue > 0).map(inv => (
-                    <option key={inv.id} value={inv.id}>
-                      {inv.student.firstName} {inv.student.lastName} - Balance: ₦{inv.balanceDue.toLocaleString()}
-                    </option>
-                  ))}
+                  {invoices
+                    .filter(inv => inv.balanceDue > 0)
+                    .filter(inv => !newPayment.studentId || String(inv.student.id) === String(newPayment.studentId))
+                    .map(inv => (
+                      <option key={inv.id} value={inv.id}>
+                        {inv.student.firstName} {inv.student.lastName} - Balance: ₦{inv.balanceDue.toLocaleString()}
+                      </option>
+                    ))}
                 </select>
               </div>
             </div>

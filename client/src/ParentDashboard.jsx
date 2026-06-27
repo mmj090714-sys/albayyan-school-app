@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import SchoolHeader from './SchoolHeader';
 import './ParentDashboard.css';
+import { getApiUrl } from './utils/supabaseClient';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_URL = getApiUrl();
 
 export default function ParentDashboard() {
   const [admissionNum, setAdmissionNum] = useState('');

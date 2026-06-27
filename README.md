@@ -27,7 +27,7 @@ A comprehensive full-stack web application for managing student invoices and pay
 
 ### Technical Highlights
 - ✅ Full-stack monorepo (server + client)
-- ✅ SQLite for development, PostgreSQL ready for production
+- ✅ Supabase for development and production
 - ✅ RESTful API with comprehensive error handling
 - ✅ Responsive UI for all devices
 - ✅ Role-based access control (Admin, Director)
@@ -39,12 +39,11 @@ A comprehensive full-stack web application for managing student invoices and pay
 ```
 alb-project/
 ├── server/                    # Node.js/Express backend
-│   ├── prisma/
-│   │   ├── schema.prisma     # Database schema
-│   │   └── dev.db            # SQLite development database
 │   ├── server.js             # Express server with all routes
 │   ├── package.json
-│   └── .env                  # Environment configuration
+│   ├── .env                  # Local environment configuration
+│   ├── .env.example          # Example environment variables
+│   └── .env.production       # Production environment guidance
 ├── client/                    # React frontend
 │   ├── src/
 │   │   ├── App.jsx           # Home page router
@@ -77,8 +76,8 @@ alb-project/
 # 1. Install all dependencies
 npm install
 
-# 2. Database is already initialized (SQLite)
-# For production, update DATABASE_URL in server/.env to PostgreSQL
+# 2. Configure Supabase environment variables in server/.env
+# For production, set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in your host
 
 # 3. Start development servers
 npm run dev
@@ -90,9 +89,13 @@ This will start:
 
 ## 🔑 Default Admin Credentials
 
-Admin portal password (token): `albayyan-admin-secret`
+Default development credentials are defined in `server/.env`:
+- `ADMIN_USERNAME="admin"`
+- `ADMIN_PASSWORD="Admin@123"`
+- `DIRECTOR_USERNAME="director"`
+- `DIRECTOR_PASSWORD="Director@123"`
 
-Change this in `server/.env` under `ADMIN_SECRET` for production.
+Change these values in `server/.env` for production.
 
 ## 📊 API Endpoints
 
@@ -252,10 +255,18 @@ npm run build --workspace=client
 
 ### Server (.env)
 ```
-DATABASE_URL="file:./dev.db"
+SUPABASE_URL="https://ugcshwgjqubuhbhpxztw.supabase.co"
+SUPABASE_SERVICE_ROLE_KEY="YOUR_SUPABASE_SERVICE_ROLE_KEY"
+# Optional development fallback if service role key is unavailable
+SUPABASE_ANON_KEY="sb_publishable_1mttcxj1p6Sb6WzYV37Lfg_TEi87RM8"
+JWT_SECRET="your-super-secret-jwt-key-change-in-production-min-32-chars"
+CORS_ORIGIN="http://localhost:3000"
 PORT=5000
 NODE_ENV=development
-ADMIN_SECRET="your-secret-key"
+ADMIN_USERNAME="admin"
+ADMIN_PASSWORD="Admin@123"
+DIRECTOR_USERNAME="director"
+DIRECTOR_PASSWORD="Director@123"
 ```
 
 ### Client (.env)

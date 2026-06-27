@@ -1,12 +1,10 @@
 {
-  "name": "albayyan-server",
+  "name": "albayyan-api",
   "version": "1.0.0",
-  "description": "Backend API for Albayyan fee management system",
   "type": "module",
-  "main": "server.js",
+  "main": "index.js",
   "scripts": {
-    "dev": "node server.js",
-    "start": "node server.js"
+    "start": "node index.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.2",
@@ -14,8 +12,5 @@
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "jsonwebtoken": "^9.0.3"
-  },
-  "devDependencies": {
-    "nodemon": "^3.0.2"
   }
 }
